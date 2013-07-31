@@ -98,6 +98,7 @@ public class TaskRunner extends Thread {
     public Object call() throws Exception {
       final boolean consoleRedirect = bspJob.getConfiguration().getBoolean(
           "hama.child.redirect.log.console", false);
+      LOG.info("ProcessBuilder: commands: "+commands);
       ProcessBuilder builder = new ProcessBuilder(commands);
       builder.directory(workDir);
       try {
