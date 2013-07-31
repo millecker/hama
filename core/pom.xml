@@ -130,6 +130,12 @@
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
     </dependency>
+    
+    <dependency>
+      <groupId>rootbeer</groupId>
+      <artifactId>rootbeer</artifactId>
+      <version>develop-branch</version>
+    </dependency>
   </dependencies>
 
   <build>

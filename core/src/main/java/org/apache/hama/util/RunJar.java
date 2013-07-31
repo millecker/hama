@@ -36,8 +36,9 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 import org.apache.hadoop.fs.FileUtil;
+import org.mortbay.log.Log;
 
-//import edu.syr.pcpratts.rootbeer.entry.RootbeerCompiler;
+import edu.syr.pcpratts.rootbeer.entry.RootbeerCompiler;
 
 /**
  * Run a Hama job jar.
@@ -81,7 +82,9 @@ public class RunJar {
    * must be provided on the command line.
    */
   public static void main(String[] args) throws Throwable {
-    String usage = "Usage: hama jar <jar> [mainClass] [-gpu] args...";
+    String rootbeerParam = "-rb"; // Rootbeer parameter for HybridBSP
+    String usage = "Usage: hama jar <jar> [mainClass] [" + rootbeerParam
+        + "] args...";
 
     if (args.length < 1) {
       System.err.println(usage);
@@ -101,38 +104,39 @@ public class RunJar {
     jarFile.close();
 
     if (mainClassName == null) {
-      if ( (args.length < 2) || (args[firstArg].equals("-gpu")) ) {
-    	    System.out.println("Missing Main-Class!");
+      if ((args.length < 2) || (args[firstArg].equals(rootbeerParam))) {
+        System.out.println("Missing Main-Class!");
         System.err.println(usage);
         System.exit(-1);
       }
       mainClassName = args[firstArg++];
     }
     mainClassName = mainClassName.replaceAll("/", ".");
-    
-    // Check for enabled GPU support
-    // boolean gpuSupport = false;
-    if ((firstArg < args.length) && (args[firstArg].equals("-gpu"))) {
-      //gpuSupport = true;
-      firstArg++;
-      System.out.println("GPU Support Enabled!");
-      
-      // RootbeerCompiler compiler = new RootbeerCompiler();
-      //if(m_disableClassRemapping){
-      //  compiler.disableClassRemapping(); 
-      //}
 
-      /*
-	  String dstFileName = new String(fileName.substring(0,fileName.indexOf(".jar"))+"-GPU.jar");
-      System.out.println("Start RootbeerCompiler ("+fileName+","+dstFileName+")");
-	  try {
+    // Check for enabled Rootbeer support
+    // boolean gpuSupport = false;
+    if ((firstArg < args.length) && (args[firstArg].equals(rootbeerParam))) {
+      // gpuSupport = true;
+      firstArg++;
+
+      RootbeerCompiler compiler = new RootbeerCompiler();
+      // if(m_disableClassRemapping){
+      // compiler.disableClassRemapping();
+      // }
+
+      String dstFileName = new String(fileName.substring(0,
+          fileName.indexOf(".jar"))
+          + "-rb.jar");
+      Log.info("Start RootbeerCompiler (" + fileName + "," + dstFileName + ")");
+
+      try {
         compiler.compile(fileName, dstFileName);
-      } catch(Exception ex){
+      } catch (Exception ex) {
         ex.printStackTrace();
       }
-      */
+
     }
-    
+
     final File workDir = File.createTempFile("hama-unjar", "");
     workDir.delete();
     workDir.mkdirs();
@@ -168,11 +172,11 @@ public class RunJar {
         new Class[] { Array.newInstance(String.class, 0).getClass() });
     List<String> var = Arrays.asList(args).subList(firstArg, args.length);
     String[] newArgs = var.toArray(new String[var.size()]);
-    
-    System.out.println("Program args: "+Arrays.toString(newArgs));
-    System.out.println("MainClass: "+mainClassName);
-    
-    //System.exit(-1);
+
+    System.out.println("Program args: " + Arrays.toString(newArgs));
+    System.out.println("MainClass: " + mainClassName);
+
+    // System.exit(-1);
     try {
       main.invoke(null, new Object[] { newArgs });
     } catch (InvocationTargetException e) {
