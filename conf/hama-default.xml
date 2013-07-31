@@ -116,7 +116,7 @@
   </property>
   <property>
     <name>bsp.tasks.maximum</name>
-    <value>3</value>
+    <value>8</value>
     <description>The maximum number of BSP tasks that will be run simultaneously 
     by a groom server.</description>
   </property>
@@ -157,6 +157,7 @@
     but it trades more memory.
     </description>
   </property>
+  
   <property>
     <name>bsp.input.runtime.partitioning</name>
     <value>true</value>
