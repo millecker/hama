@@ -35,8 +35,9 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileUtil;
-import org.mortbay.log.Log;
 
 import edu.syr.pcpratts.rootbeer.entry.RootbeerCompiler;
 
@@ -44,6 +45,8 @@ import edu.syr.pcpratts.rootbeer.entry.RootbeerCompiler;
  * Run a Hama job jar.
  */
 public class RunJar {
+
+  private static final Log LOG = LogFactory.getLog(RunJar.class);
 
   /** Unpack a jar file into a directory. */
   public static void unJar(File jarFile, File toDir) throws IOException {
@@ -127,14 +130,14 @@ public class RunJar {
       String dstFileName = new String(fileName.substring(0,
           fileName.indexOf(".jar"))
           + "-rb.jar");
-      Log.info("Start RootbeerCompiler (" + fileName + "," + dstFileName + ")");
+      LOG.info("Start RootbeerCompiler (" + fileName + "," + dstFileName + ")");
 
       try {
         compiler.compile(fileName, dstFileName);
+        file = new File(dstFileName);
       } catch (Exception ex) {
         ex.printStackTrace();
       }
-
     }
 
     final File workDir = File.createTempFile("hama-unjar", "");
