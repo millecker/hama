@@ -4,8 +4,11 @@ Release 0.6.3 (unreleased changes)
 
   NEW FEATURES
 
+   HAMA-594: Semi-Clustering Algorithm Implementation (Renil Jeseph via edwardyoon)
+
   BUG FIXES
   
+   HAMA-791: Fix the problem that MultilayerPerceptron fails to learn a good hypothesis sometimes. (Yexi Jiang)
    HAMA-782: The arguments of DoubleVector.slice(int, int) method will mislead the user. (Yexi Jiang)
    HAMA-780: New launched child processes by fault tolerance may not be able to contact each other (kennethxian)
    HAMA-772: When selected KeyValueTextInputFormat, workers get only one value for key (Ikhtiyor Ahmedov via edwardyoon)
@@ -19,6 +22,9 @@ Release 0.6.3 (unreleased changes)
    HAMA-671: Clean up Maven build scripts (edwardyoon)
    HAMA-765: Add apply method to Vector/Matrix (Yexi Jiang)
    HAMA-773: Matrix/Vector operation does not validate the input argument (Yexi Jiang)
+   
+  TASKS
+   HAMA-792: Add testing datasets for ML package (Yexi Jiang)
 
 Release 0.6.2 - June 26, 2013
 
