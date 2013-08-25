@@ -149,7 +149,7 @@ public class RunJar {
       public void run() {
         try {
           FileUtil.fullyDelete(workDir);
-        } catch (IOException e) {
+        } catch (Exception e) {
         }
       }
     });
