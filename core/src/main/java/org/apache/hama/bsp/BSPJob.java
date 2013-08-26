@@ -285,6 +285,14 @@ public class BSPJob extends BSPJobContext {
     // default is 1, because with zero, we will hang in infinity
     return conf.getInt("bsp.peers.num", 1);
   }
+  
+  public void setNumBspGpuTask(int tasks) {
+    conf.setInt("bsp.peers.gpu.num", tasks);
+  }
+
+  public int getNumBspGpuTask() {
+    return conf.getInt("bsp.peers.gpu.num", 0);
+  }
 
   @SuppressWarnings({ "rawtypes" })
   public InputFormat getInputFormat() {

@@ -142,9 +142,10 @@ public abstract class Task implements Writable {
    * 
    * @param bspPeer for communications
    * @param umbilical for communications with GroomServer
+   * @param useGPU for running the task on GPU (false=CPU)
    */
   public abstract void run(BSPJob job, BSPPeerImpl<?, ?, ?, ?, ?> bspPeer,
-      BSPPeerProtocol umbilical) throws Exception;
+      BSPPeerProtocol umbilical, boolean useGPU) throws Exception;
 
   public abstract BSPTaskRunner createRunner(GroomServer groom);
 

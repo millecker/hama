@@ -48,9 +48,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hama.ipc.RPC;
-import org.apache.hama.ipc.RemoteException;
-import org.apache.hama.ipc.Server;
 import org.apache.hadoop.net.DNS;
 import org.apache.hadoop.util.DiskChecker;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
@@ -64,6 +61,9 @@ import org.apache.hama.ipc.BSPPeerProtocol;
 import org.apache.hama.ipc.GroomProtocol;
 import org.apache.hama.ipc.HamaRPCProtocolVersion;
 import org.apache.hama.ipc.MasterProtocol;
+import org.apache.hama.ipc.RPC;
+import org.apache.hama.ipc.RemoteException;
+import org.apache.hama.ipc.Server;
 import org.apache.hama.monitor.Monitor;
 import org.apache.hama.monitor.fd.FDProvider;
 import org.apache.hama.monitor.fd.Sensor;
@@ -1257,7 +1257,13 @@ public class GroomServer implements Runnable, GroomProtocol, BSPPeerProtocol,
             defaultConf, taskid, umbilical, task.partition, task.splitClass,
             task.split, task.getCounters(), superstep, state);
 
-        task.run(job, bspPeer, umbilical); // run the task
+        // run last tasks on GPU when NumBspGpuTask was set
+        boolean useGPU = (taskid.getTaskID().getId() >= job.getNumBspTask()
+            - job.getNumBspGpuTask());
+        LOG.debug("Run task on " + ((useGPU) ? "GPU" : "CPU"));
+        // run the task
+        // last task could be run on GPU
+        task.run(job, bspPeer, umbilical, useGPU);
 
       } catch (FSError e) {
         LOG.fatal("FSError from child", e);

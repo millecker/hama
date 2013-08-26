@@ -184,7 +184,7 @@ public class TestBSPTaskFaults extends TestCase {
       try {
         BSPPeerImpl<?, ?, ?, ?, ?> bspPeer = new BSPPeerImpl(job, conf, taskid,
             umbilical, 0, null, null, new Counters());
-        task.run(job, bspPeer, umbilical); // run the task
+        task.run(job, bspPeer, umbilical, false); // run the task
       } catch (Exception e) {
         LOG.error("Error in BSPTask execution.", e);
       }
@@ -354,7 +354,7 @@ public class TestBSPTaskFaults extends TestCase {
         @SuppressWarnings("rawtypes")
         BSPPeerImpl<?, ?, ?, ?, ?> bspPeer = new BSPPeerImpl(job, hamaConf,
             tid, proto, 0, null, null, new Counters());
-        task.run(job, bspPeer, proto); // run the task
+        task.run(job, bspPeer, proto, false); // run the task
 
       } catch (Exception e) {
         LOG.error("Error in bsp child process.", e);
