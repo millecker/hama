@@ -19,9 +19,11 @@ package org.apache.hama.pipes;
 
 import java.io.IOException;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Writable;
+import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.Partitioner;
 
 /**
@@ -70,6 +72,13 @@ public class PipesPartitioner<K, V> implements Partitioner<K, V>,
       PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> pipesApp) {
 
     this.application = pipesApp;
+  }
+
+  @Override
+  public void start(
+      BSPPeer<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> peer)
+      throws IOException, InterruptedException {
+    throw new NotImplementedException();
   }
 
 }

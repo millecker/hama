@@ -49,7 +49,7 @@ import org.apache.hama.util.KeyValuePair;
  * @param <V2> output value.
  */
 public class StreamingProtocol<K1 extends Writable, V1 extends Writable>
-    extends BinaryProtocol<K1, V1, Text, Text> {
+    extends BinaryProtocol<K1, V1, Text, Text, BytesWritable> {
 
   private static final Pattern PROTOCOL_STRING_PATTERN = Pattern.compile("=");
 
@@ -62,7 +62,7 @@ public class StreamingProtocol<K1 extends Writable, V1 extends Writable>
   }
 
   public class StreamingUplinkReaderThread extends
-      UplinkReader<K1, V1, Text, Text> {
+      UplinkReader<K1, V1, Text, Text, BytesWritable> {
 
     private BufferedReader reader;
 

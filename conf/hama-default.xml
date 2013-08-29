@@ -116,7 +116,7 @@
   </property>
   <property>
     <name>bsp.tasks.maximum</name>
-    <value>8</value>
+    <value>9</value>
     <description>The maximum number of BSP tasks that will be run simultaneously 
     by a groom server.</description>
   </property>

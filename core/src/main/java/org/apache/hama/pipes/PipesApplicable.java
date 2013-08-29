@@ -17,7 +17,10 @@
  */
 package org.apache.hama.pipes;
 
+import java.io.IOException;
+
 import org.apache.hadoop.io.Writable;
+import org.apache.hama.bsp.BSPPeer;
 
 /**
  * This interface is implemented in Classes which should have access to the
@@ -26,6 +29,10 @@ import org.apache.hadoop.io.Writable;
 public interface PipesApplicable {
 
   public void setApplication(
-      PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> pipesApp);
+      PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> pipesApplication);
+
+  public void start(
+      BSPPeer<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> peer)
+      throws IOException, InterruptedException;
 
 }

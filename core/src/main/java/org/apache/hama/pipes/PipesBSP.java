@@ -41,7 +41,7 @@ public class PipesBSP<K1 extends Writable, V1 extends Writable, K2 extends Writa
   public void setup(BSPPeer<K1, V1, K2, V2, BytesWritable> peer)
       throws IOException, SyncException, InterruptedException {
 
-    this.application.start(peer);
+    this.start(peer);
 
     this.application.getDownlink().runSetup(false, false);
 
@@ -100,9 +100,16 @@ public class PipesBSP<K1 extends Writable, V1 extends Writable, K2 extends Writa
   @SuppressWarnings("unchecked")
   @Override
   public void setApplication(
-      PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> pipesApp) {
+      PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> pipesApplication) {
+    this.application = (PipesApplication<K1, V1, K2, V2, BytesWritable>) pipesApplication;
+  }
 
-    this.application = (PipesApplication<K1, V1, K2, V2, BytesWritable>) pipesApp;
+  @SuppressWarnings("unchecked")
+  @Override
+  public void start(
+      BSPPeer<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> peer)
+      throws IOException, InterruptedException {
+    this.application.start((BSPPeer<K1, V1, K2, V2, BytesWritable>) peer);
   }
 
 }

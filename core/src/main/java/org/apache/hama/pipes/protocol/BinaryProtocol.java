@@ -46,7 +46,7 @@ import org.apache.hama.pipes.Submitter;
  * Adapted from Hadoop Pipes.
  * 
  */
-public class BinaryProtocol<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable>
+public class BinaryProtocol<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable, M extends Writable>
     implements DownwardProtocol<K1, V1, K2, V2> {
 
   protected static final Log LOG = LogFactory.getLog(BinaryProtocol.class
@@ -60,7 +60,7 @@ public class BinaryProtocol<K1 extends Writable, V1 extends Writable, K2 extends
   protected final DataOutputStream stream;
   protected final DataOutputBuffer buffer = new DataOutputBuffer();
 
-  private UplinkReader<K1, V1, K2, V2> uplink;
+  private UplinkReader<K1, V1, K2, V2, M> uplink;
 
   public final Object hasTaskLock = new Object();
   private boolean hasTask = false;
@@ -68,7 +68,7 @@ public class BinaryProtocol<K1 extends Writable, V1 extends Writable, K2 extends
   private Integer resultInt = null;
 
   /* Protected final peer is only needed by the Streaming Protocol */
-  protected final BSPPeer<K1, V1, K2, V2, BytesWritable> peer;
+  protected final BSPPeer<K1, V1, K2, V2, M> peer;
   private Configuration conf;
 
   /**
@@ -90,7 +90,7 @@ public class BinaryProtocol<K1 extends Writable, V1 extends Writable, K2 extends
       out = new TeeOutputStream("downlink.data", out);
     }
     stream = new DataOutputStream(new BufferedOutputStream(out, BUFFER_SIZE));
-    uplink = new UplinkReader<K1, V1, K2, V2>(this, conf, in);
+    uplink = new UplinkReader<K1, V1, K2, V2, M>(this, conf, in);
 
     uplink.setName("pipe-uplink-handler");
     uplink.start();
@@ -106,8 +106,8 @@ public class BinaryProtocol<K1 extends Writable, V1 extends Writable, K2 extends
    * @param in The input stream to communicate on.
    * @throws IOException
    */
-  public BinaryProtocol(BSPPeer<K1, V1, K2, V2, BytesWritable> peer,
-      OutputStream out, InputStream in) throws IOException {
+  public BinaryProtocol(BSPPeer<K1, V1, K2, V2, M> peer, OutputStream out,
+      InputStream in) throws IOException {
     this.peer = peer;
     this.conf = peer.getConfiguration();
 
@@ -116,7 +116,7 @@ public class BinaryProtocol<K1 extends Writable, V1 extends Writable, K2 extends
       out = new TeeOutputStream("downlink.data", out);
     }
     stream = new DataOutputStream(new BufferedOutputStream(out, BUFFER_SIZE));
-    uplink = new UplinkReader<K1, V1, K2, V2>(this, peer, in);
+    uplink = new UplinkReader<K1, V1, K2, V2, M>(this, peer, in);
 
     uplink.setName("pipe-uplink-handler");
     uplink.start();

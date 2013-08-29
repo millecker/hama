@@ -38,7 +38,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hama.bsp.BSPPeer;
@@ -210,9 +209,6 @@ public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 exten
     LOG.debug("DEBUG: cmd: " + cmd);
     process = runClient(cmd, env); // fork c++ binary
 
-    LOG.debug("DEBUG: waiting for Client at "
-        + serverSocket.getLocalSocketAddress());
-
     try {
       if (!streamingEnabled) {
         LOG.debug("DEBUG: waiting for Client at "
@@ -221,7 +217,7 @@ public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 exten
         clientSocket = serverSocket.accept();
         LOG.debug("DEBUG: Client connected! - start BinaryProtocol!");
 
-        downlink = new BinaryProtocol<K1, V1, K2, V2>(conf,
+        downlink = new BinaryProtocol<K1, V1, K2, V2, M>(conf,
             clientSocket.getOutputStream(), clientSocket.getInputStream());
 
         downlink.start();
@@ -250,8 +246,8 @@ public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 exten
    * @throws IOException
    */
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  public void start(BSPPeer<K1, V1, K2, V2, BytesWritable> peer)
-      throws IOException, InterruptedException {
+  public void start(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
+      InterruptedException {
 
     Map<String, String> env = setupEnvironment(peer.getConfiguration());
     List<String> cmd = setupCommand(peer.getConfiguration());
@@ -292,7 +288,7 @@ public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 exten
         clientSocket = serverSocket.accept();
         LOG.debug("DEBUG: Client connected! - start BinaryProtocol!");
 
-        downlink = new BinaryProtocol<K1, V1, K2, V2>(peer,
+        downlink = new BinaryProtocol<K1, V1, K2, V2, M>(peer,
             clientSocket.getOutputStream(), clientSocket.getInputStream());
       }
 
@@ -311,6 +307,39 @@ public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 exten
       throw new SocketException(
           "Timout: Client pipes application was not connecting!");
     }
+  }
+
+  /**
+   * Start the server to handle possible clients.
+   * @param peer
+   * @return Map<String, String> environment including server port
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public Map<String, String> startServer(BSPPeer<K1, V1, K2, V2, M> peer)
+      throws IOException, InterruptedException {
+
+    Map<String, String> env = setupEnvironment(peer.getConfiguration());
+
+    try {
+      LOG.debug("DEBUG: waiting for Client at "
+          + serverSocket.getLocalSocketAddress());
+
+      serverSocket.setSoTimeout(2000);
+      clientSocket = serverSocket.accept();
+      LOG.debug("DEBUG: Client connected! - start BinaryProtocol!");
+
+      downlink = new BinaryProtocol<K1, V1, K2, V2, M>(peer,
+          clientSocket.getOutputStream(), clientSocket.getInputStream());
+
+      downlink.start();
+
+    } catch (SocketException e) {
+      throw new SocketException(
+          "Timout: Client pipes application was not connecting!");
+    }
+
+    return env;
   }
 
   /**

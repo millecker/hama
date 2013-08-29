@@ -46,7 +46,7 @@ import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.sync.SyncException;
 import org.apache.hama.util.KeyValuePair;
 
-public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable>
+public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable, M extends Writable>
     extends Thread {
 
   private static final Log LOG = LogFactory.getLog(UplinkReader.class);
@@ -54,16 +54,17 @@ public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends W
   protected DataInputStream inStream;
   private K2 key;
   private V2 value;
-  
-  private BinaryProtocol<K1, V1, K2, V2> binProtocol;
-  private BSPPeer<K1, V1, K2, V2, BytesWritable> peer = null;
+  private Class<M> messageClass;
+
+  private BinaryProtocol<K1, V1, K2, V2, M> binProtocol;
+  private BSPPeer<K1, V1, K2, V2, M> peer = null;
   private Configuration conf;
-  
+
   private Map<Integer, Entry<SequenceFile.Reader, Entry<String, String>>> sequenceFileReaders;
   private Map<Integer, Entry<SequenceFile.Writer, Entry<String, String>>> sequenceFileWriters;
 
   @SuppressWarnings("unchecked")
-  public UplinkReader(BinaryProtocol<K1, V1, K2, V2> binaryProtocol,
+  public UplinkReader(BinaryProtocol<K1, V1, K2, V2, M> binaryProtocol,
       Configuration conf, InputStream stream) throws IOException {
 
     this.binProtocol = binaryProtocol;
@@ -82,9 +83,8 @@ public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends W
     this.sequenceFileWriters = new HashMap<Integer, Entry<SequenceFile.Writer, Entry<String, String>>>();
   }
 
-  public UplinkReader(BinaryProtocol<K1, V1, K2, V2> binaryProtocol,
-      BSPPeer<K1, V1, K2, V2, BytesWritable> peer, InputStream stream)
-      throws IOException {
+  public UplinkReader(BinaryProtocol<K1, V1, K2, V2, M> binaryProtocol,
+      BSPPeer<K1, V1, K2, V2, M> peer, InputStream stream) throws IOException {
     this(binaryProtocol, peer.getConfiguration(), stream);
     this.peer = peer;
   }
@@ -269,7 +269,7 @@ public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends W
     DataOutputStream stream = binProtocol.getStream();
     LOG.debug("Got MessageType.GET_MSG");
     WritableUtils.writeVInt(stream, MessageType.GET_MSG.code);
-    BytesWritable msg = peer.getCurrentMessage();
+    Writable msg = peer.getCurrentMessage();
     if (msg != null)
       binProtocol.writeObject(msg);
 
@@ -286,9 +286,10 @@ public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends W
         + peer.getNumCurrentMessages());
   }
 
-  public void sendMessage() throws IOException {
+  public void sendMessage() throws IOException, InstantiationException,
+      IllegalAccessException {
     String peerName = Text.readString(inStream);
-    BytesWritable msg = new BytesWritable();
+    M msg = messageClass.newInstance();
     readObject(msg);
     LOG.debug("Got MessageType.SEND_MSG to peerName: " + peerName);
     peer.send(peerName, msg);

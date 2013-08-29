@@ -167,7 +167,7 @@ public final class BSPTask extends Task {
 
     LOG.debug("bsp.work.class: " + workClass.toString());
 
-    boolean hybridJob = false;
+    boolean useHybridGpuJob = false;
     /* Setup PipesApplication if workClass is matching */
     if (PipesBSP.class.equals(workClass)) {
       ((PipesApplicable) bsp).setApplication(job.getPipesApplication());
@@ -175,24 +175,32 @@ public final class BSPTask extends Task {
       /* Setup HybridApplication (CPU+GPU) if workClass is matching */
     } else if (HybridBSP.class.equals((workClass.getSuperclass()))) {
       LOG.debug("HybridBSP is available...");
-      hybridJob = true;
-      // TODO
-      // Setup Pipes Server and store port here
+
+      if (useGPU) {
+        useHybridGpuJob = true;
+
+        ((PipesApplicable) bsp).setApplication(job.getPipesApplication());
+        // TODO
+        // Start server and Rootbeer client
+        ((PipesApplicable) bsp)
+            .start((BSPPeer<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable>) bspPeer);
+      }
     }
 
     // The policy is to throw the first exception and log the remaining.
     Exception firstException = null;
     try {
-      // TODO
-      // if hybridtask then run setupGpu(port) and bspGpu
-      if ((hybridJob) && (useGPU)) {
-        ((HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M>) bsp)
-            .setupGpu(bspPeer);
-        ((HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M>) bsp).bspGpu(bspPeer);
+
+      if (useHybridGpuJob) {
+        ((HybridBSP) bsp).setupGpu(bspPeer);
+
+        ((HybridBSP) bsp).bspGpu(bspPeer);
+
       } else {
         bsp.setup(bspPeer);
         bsp.bsp(bspPeer);
       }
+
     } catch (Exception e) {
       LOG.error("Error running bsp setup and bsp function.", e);
       firstException = e;

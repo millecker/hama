@@ -18,18 +18,27 @@
 package org.apache.hama.bsp.gpu;
 
 import java.io.IOException;
+import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Writable;
 import org.apache.hama.bsp.BSP;
 import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.sync.SyncException;
+import org.apache.hama.pipes.PipesApplicable;
+import org.apache.hama.pipes.PipesApplication;
 
 /**
  * This class provides an abstract implementation of the {@link BSP} and
  * {@link BSPGpuInterface}.
  */
-public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
-    BSP<K1, V1, K2, V2, M> implements BSPGpuInterface<K1, V1, K2, V2, M> {
+public abstract class HybridBSP<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable, M extends Writable>
+    extends BSP<K1, V1, K2, V2, M> implements
+    BSPGpuInterface<K1, V1, K2, V2, M>, PipesApplicable {
+
+  private static final Log LOG = LogFactory.getLog(HybridBSP.class);
+  protected PipesApplication<K1, V1, K2, V2, M> application;
 
   /**
    * {@inheritDoc}
@@ -55,4 +64,23 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
 
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public void setApplication(
+      PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> pipesApplication) {
+    this.application = (PipesApplication<K1, V1, K2, V2, M>) pipesApplication;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void start(
+      BSPPeer<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> peer)
+      throws IOException, InterruptedException {
+
+    Map<String, String> env = application
+        .startServer((BSPPeer<K1, V1, K2, V2, M>) peer);
+
+    // TODO
+
+  }
 }
