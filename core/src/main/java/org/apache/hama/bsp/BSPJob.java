@@ -25,7 +25,6 @@ import java.util.Enumeration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -260,9 +259,9 @@ public class BSPJob extends BSPJobContext {
     return conf.getBoolean(name, defaultValue);
   }
 
-  public final <K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable> PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> getPipesApplication() {
+  public final <K1, V1, K2, V2, M extends Writable> PipesApplication<?, ?, ?, ?, ?> getPipesApplication() {
     if (pipesApp == null)
-      pipesApp = new PipesApplication<K1, V1, K2, V2, BytesWritable>();
+      pipesApp = new PipesApplication<K1, V1, K2, V2, M>();
 
     return pipesApp;
   }
@@ -285,7 +284,7 @@ public class BSPJob extends BSPJobContext {
     // default is 1, because with zero, we will hang in infinity
     return conf.getInt("bsp.peers.num", 1);
   }
-  
+
   public void setNumBspGpuTask(int tasks) {
     conf.setInt("bsp.peers.gpu.num", tasks);
   }

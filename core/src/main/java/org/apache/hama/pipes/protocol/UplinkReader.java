@@ -46,25 +46,26 @@ import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.sync.SyncException;
 import org.apache.hama.util.KeyValuePair;
 
-public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable, M extends Writable>
+public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
     extends Thread {
 
   private static final Log LOG = LogFactory.getLog(UplinkReader.class);
 
   protected DataInputStream inStream;
-  private K2 key;
-  private V2 value;
+  private KEYOUT key;
+  private VALUEOUT value;
   private Class<M> messageClass;
 
-  private BinaryProtocol<K1, V1, K2, V2, M> binProtocol;
-  private BSPPeer<K1, V1, K2, V2, M> peer = null;
+  private BinaryProtocol<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> binProtocol;
+  private BSPPeer<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> peer = null;
   private Configuration conf;
 
   private Map<Integer, Entry<SequenceFile.Reader, Entry<String, String>>> sequenceFileReaders;
   private Map<Integer, Entry<SequenceFile.Writer, Entry<String, String>>> sequenceFileWriters;
 
   @SuppressWarnings("unchecked")
-  public UplinkReader(BinaryProtocol<K1, V1, K2, V2, M> binaryProtocol,
+  public UplinkReader(
+      BinaryProtocol<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> binaryProtocol,
       Configuration conf, InputStream stream) throws IOException {
 
     this.binProtocol = binaryProtocol;
@@ -73,18 +74,22 @@ public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends W
     this.inStream = new DataInputStream(new BufferedInputStream(stream,
         BinaryProtocol.BUFFER_SIZE));
 
-    this.key = (K2) ReflectionUtils.newInstance((Class<? extends K2>) conf
-        .getClass("bsp.output.key.class", Object.class), conf);
+    this.key = (KEYOUT) ReflectionUtils.newInstance(
+        (Class<? extends KEYOUT>) conf.getClass("bsp.output.key.class",
+            Object.class), conf);
 
-    this.value = (V2) ReflectionUtils.newInstance((Class<? extends V2>) conf
-        .getClass("bsp.output.value.class", Object.class), conf);
+    this.value = (VALUEOUT) ReflectionUtils.newInstance(
+        (Class<? extends VALUEOUT>) conf.getClass("bsp.output.value.class",
+            Object.class), conf);
 
     this.sequenceFileReaders = new HashMap<Integer, Entry<SequenceFile.Reader, Entry<String, String>>>();
     this.sequenceFileWriters = new HashMap<Integer, Entry<SequenceFile.Writer, Entry<String, String>>>();
   }
 
-  public UplinkReader(BinaryProtocol<K1, V1, K2, V2, M> binaryProtocol,
-      BSPPeer<K1, V1, K2, V2, M> peer, InputStream stream) throws IOException {
+  public UplinkReader(
+      BinaryProtocol<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> binaryProtocol,
+      BSPPeer<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> peer, InputStream stream)
+      throws IOException {
     this(binaryProtocol, peer.getConfiguration(), stream);
     this.peer = peer;
   }
@@ -312,12 +317,12 @@ public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends W
 
     if (!nullinput) {
 
-      KeyValuePair<K1, V1> pair = peer.readNext();
+      KeyValuePair<KEYIN, VALUEIN> pair = peer.readNext();
 
       WritableUtils.writeVInt(stream, MessageType.READ_KEYVALUE.code);
       if (pair != null) {
-        binProtocol.writeObject(pair.getKey());
-        binProtocol.writeObject(pair.getValue());
+        binProtocol.writeObject((Writable) pair.getKey());
+        binProtocol.writeObject((Writable) pair.getValue());
 
         String valueStr = pair.getValue().toString();
         LOG.debug("Responded MessageType.READ_KEYVALUE - Key: "
@@ -345,8 +350,8 @@ public class UplinkReader<K1 extends Writable, V1 extends Writable, K2 extends W
   }
 
   public void writeKeyValue() throws IOException {
-    readObject(key); // string or binary only
-    readObject(value); // string or binary only
+    readObject((Writable) key); // string or binary only
+    readObject((Writable) value); // string or binary only
     if (LOG.isDebugEnabled())
       LOG.debug("Got MessageType.WRITE_KEYVALUE - Key: " + key + " Value: "
           + value);

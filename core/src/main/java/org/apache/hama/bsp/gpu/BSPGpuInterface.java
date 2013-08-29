@@ -23,6 +23,8 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.sync.SyncException;
 
+import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
+
 /**
  * The {@link BSPGpuInterface} defines the basic operations needed to implement
  * a BSP GPU based algorithm. The implementing algorithm takes {@link BSPPeer}s
@@ -40,8 +42,8 @@ public interface BSPGpuInterface<K1, V1, K2, V2, M extends Writable> {
    * @throws org.apache.hama.bsp.sync.SyncException
    * @throws InterruptedException
    */
-  public void bspGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
-      SyncException, InterruptedException;
+  public void bspGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
+      throws IOException, SyncException, InterruptedException;
 
   /**
    * This method is called before the BSP method. It can be used for setup
@@ -50,8 +52,8 @@ public interface BSPGpuInterface<K1, V1, K2, V2, M extends Writable> {
    * @param peer Your BSPPeer instance.
    * @throws IOException
    */
-  public void setupGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
-      SyncException, InterruptedException;
+  public void setupGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
+      throws IOException, SyncException, InterruptedException;
 
   /**
    * This method is called after the BSP method. It can be used for cleanup
@@ -61,5 +63,6 @@ public interface BSPGpuInterface<K1, V1, K2, V2, M extends Writable> {
    * @param peer Your BSPPeer instance.
    * @throws IOException
    */
-  public void cleanupGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException;
+  public void cleanupGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
+      throws IOException;
 }

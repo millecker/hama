@@ -37,6 +37,8 @@ import org.apache.hama.ipc.BSPPeerProtocol;
 import org.apache.hama.pipes.PipesApplicable;
 import org.apache.hama.pipes.PipesBSP;
 
+import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
+
 /**
  * Base class for tasks.
  */
@@ -170,7 +172,9 @@ public final class BSPTask extends Task {
     boolean useHybridGpuJob = false;
     /* Setup PipesApplication if workClass is matching */
     if (PipesBSP.class.equals(workClass)) {
-      ((PipesApplicable) bsp).setApplication(job.getPipesApplication());
+      ((PipesApplicable) bsp)
+          .setApplication(job
+              .<KEYIN, VALUEIN, KEYOUT, VALUEOUT, BytesWritable> getPipesApplication());
 
       /* Setup HybridApplication (CPU+GPU) if workClass is matching */
     } else if (HybridBSP.class.equals((workClass.getSuperclass()))) {
@@ -179,22 +183,26 @@ public final class BSPTask extends Task {
       if (useGPU) {
         useHybridGpuJob = true;
 
-        ((PipesApplicable) bsp).setApplication(job.getPipesApplication());
-        // TODO
-        // Start server and Rootbeer client
-        ((PipesApplicable) bsp)
-            .start((BSPPeer<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable>) bspPeer);
+        ((PipesApplicable) bsp).setApplication(job
+            .<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> getPipesApplication());
       }
     }
 
     // The policy is to throw the first exception and log the remaining.
     Exception firstException = null;
+    Rootbeer rootbeer = null;
     try {
 
       if (useHybridGpuJob) {
-        ((HybridBSP) bsp).setupGpu(bspPeer);
 
-        ((HybridBSP) bsp).bspGpu(bspPeer);
+        HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> hybridBSP = (HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M>) bsp;
+
+        // Start server and Rootbeer client
+        rootbeer = hybridBSP.start(bspPeer);
+
+        hybridBSP.setupGpu(bspPeer, rootbeer);
+
+        hybridBSP.bspGpu(bspPeer, rootbeer);
 
       } else {
         bsp.setup(bspPeer);
@@ -206,7 +214,13 @@ public final class BSPTask extends Task {
       firstException = e;
     } finally {
       try {
-        bsp.cleanup(bspPeer);
+
+        if ((useHybridGpuJob) && (rootbeer != null)) {
+          ((HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M>) bsp).cleanupGpu(
+              bspPeer, rootbeer);
+        } else {
+          bsp.cleanup(bspPeer);
+        }
       } catch (Exception e) {
         LOG.error("Error cleaning up after bsp executed.", e);
         if (firstException == null)

@@ -54,10 +54,9 @@ import org.apache.hama.pipes.protocol.StreamingProtocol;
  * Adapted from Hadoop Pipes.
  * 
  */
-public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable, M extends Writable> {
+public class PipesApplication<K1, V1, K2, V2, M extends Writable> {
 
-  private static final Log LOG = LogFactory.getLog(PipesApplication.class
-      .getName());
+  private static final Log LOG = LogFactory.getLog(PipesApplication.class);
   private ServerSocket serverSocket;
   private Process process;
   private Socket clientSocket;
@@ -72,7 +71,7 @@ public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 exten
   }
 
   /* Build Environment based on the Configuration */
-  private Map<String, String> setupEnvironment(Configuration conf)
+  public Map<String, String> setupEnvironment(Configuration conf)
       throws IOException {
 
     Map<String, String> env = new HashMap<String, String>();
@@ -311,15 +310,14 @@ public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 exten
 
   /**
    * Start the server to handle possible clients.
+   * 
    * @param peer
    * @return Map<String, String> environment including server port
    * @throws IOException
    * @throws InterruptedException
    */
-  public Map<String, String> startServer(BSPPeer<K1, V1, K2, V2, M> peer)
-      throws IOException, InterruptedException {
-
-    Map<String, String> env = setupEnvironment(peer.getConfiguration());
+  public void startServer(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
+      InterruptedException {
 
     try {
       LOG.debug("DEBUG: waiting for Client at "
@@ -338,8 +336,6 @@ public class PipesApplication<K1 extends Writable, V1 extends Writable, K2 exten
       throw new SocketException(
           "Timout: Client pipes application was not connecting!");
     }
-
-    return env;
   }
 
   /**

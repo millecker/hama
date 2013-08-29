@@ -46,8 +46,8 @@ import org.apache.hama.pipes.Submitter;
  * Adapted from Hadoop Pipes.
  * 
  */
-public class BinaryProtocol<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable, M extends Writable>
-    implements DownwardProtocol<K1, V1, K2, V2> {
+public class BinaryProtocol<K1, V1, K2, V2, M extends Writable> implements
+    DownwardProtocol<K1, V1, K2, V2> {
 
   protected static final Log LOG = LogFactory.getLog(BinaryProtocol.class
       .getName());

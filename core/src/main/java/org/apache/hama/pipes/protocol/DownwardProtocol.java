@@ -21,7 +21,6 @@ package org.apache.hama.pipes.protocol;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Writable;
 
 /**
  * The abstract description of the downward (from Java to C++) Pipes protocol.
@@ -31,7 +30,7 @@ import org.apache.hadoop.io.Writable;
  * Adapted from Hadoop Pipes.
  * 
  */
-public interface DownwardProtocol<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable> {
+public interface DownwardProtocol<K1, V1, K2, V2> {
 
   /**
    * Start communication

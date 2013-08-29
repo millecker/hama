@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hama.bsp.BSP;
 import org.apache.hama.bsp.BSPPeer;
@@ -29,13 +30,15 @@ import org.apache.hama.bsp.sync.SyncException;
 import org.apache.hama.pipes.PipesApplicable;
 import org.apache.hama.pipes.PipesApplication;
 
+import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
+
 /**
  * This class provides an abstract implementation of the {@link BSP} and
  * {@link BSPGpuInterface}.
  */
-public abstract class HybridBSP<K1 extends Writable, V1 extends Writable, K2 extends Writable, V2 extends Writable, M extends Writable>
-    extends BSP<K1, V1, K2, V2, M> implements
-    BSPGpuInterface<K1, V1, K2, V2, M>, PipesApplicable {
+public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
+    BSP<K1, V1, K2, V2, M> implements BSPGpuInterface<K1, V1, K2, V2, M>,
+    PipesApplicable {
 
   private static final Log LOG = LogFactory.getLog(HybridBSP.class);
   protected PipesApplication<K1, V1, K2, V2, M> application;
@@ -44,15 +47,15 @@ public abstract class HybridBSP<K1 extends Writable, V1 extends Writable, K2 ext
    * {@inheritDoc}
    */
   @Override
-  public abstract void bspGpu(BSPPeer<K1, V1, K2, V2, M> peer)
+  public abstract void bspGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
       throws IOException, SyncException, InterruptedException;
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void setupGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
-      SyncException, InterruptedException {
+  public void setupGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
+      throws IOException, SyncException, InterruptedException {
 
   }
 
@@ -60,27 +63,26 @@ public abstract class HybridBSP<K1 extends Writable, V1 extends Writable, K2 ext
    * {@inheritDoc}
    */
   @Override
-  public void cleanupGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException {
+  public void cleanupGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
+      throws IOException {
 
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public void setApplication(
-      PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> pipesApplication) {
+      PipesApplication<?, ?, ?, ?, ? extends Writable> pipesApplication) {
     this.application = (PipesApplication<K1, V1, K2, V2, M>) pipesApplication;
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public void start(
-      BSPPeer<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> peer)
-      throws IOException, InterruptedException {
+  public Rootbeer start(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
+      InterruptedException {
 
-    Map<String, String> env = application
-        .startServer((BSPPeer<K1, V1, K2, V2, M>) peer);
+    Map<String, String> env = application.setupEnvironment(peer
+        .getConfiguration());
 
-    // TODO
+    application.startServer(peer);
 
+    return new Rootbeer(env);
   }
 }

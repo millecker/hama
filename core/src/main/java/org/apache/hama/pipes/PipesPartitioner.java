@@ -19,11 +19,9 @@ package org.apache.hama.pipes;
 
 import java.io.IOException;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Writable;
-import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.Partitioner;
 
 /**
@@ -35,9 +33,8 @@ import org.apache.hama.bsp.Partitioner;
 public class PipesPartitioner<K, V> implements Partitioner<K, V>,
     PipesApplicable {
 
-  private static final Log LOG = LogFactory.getLog(PipesPartitioner.class
-      .getName());
-  private PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> application = null;
+  private static final Log LOG = LogFactory.getLog(PipesPartitioner.class);
+  private PipesApplication<?, ?, ?, ?, ? extends Writable> application = null;
 
   /**
    * Partitions a specific key value mapping to a bucket.
@@ -69,16 +66,8 @@ public class PipesPartitioner<K, V> implements Partitioner<K, V>,
 
   @Override
   public void setApplication(
-      PipesApplication<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> pipesApp) {
-
-    this.application = pipesApp;
-  }
-
-  @Override
-  public void start(
-      BSPPeer<? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable, ? extends Writable> peer)
-      throws IOException, InterruptedException {
-    throw new NotImplementedException();
+      PipesApplication<?, ?, ?, ?, ? extends Writable> pipesApplication) {
+    this.application = pipesApplication;
   }
 
 }
