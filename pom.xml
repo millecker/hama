@@ -27,7 +27,7 @@
   <groupId>org.apache.hama</groupId>
   <artifactId>hama-parent</artifactId>
   <name>Apache Hama parent POM</name>
-  <version>0.6.3-SNAPSHOT</version>
+  <version>0.7.0-SNAPSHOT</version>
   <url>http://hama.apache.org</url>
   <packaging>pom</packaging>
   <prerequisites>
@@ -400,6 +400,11 @@
                 <include>lib/**</include>
                 <include>logs/**</include>
                 <include>docs/apidocs/**</include>
+                <include>c++/src/CMakeCache.txt</include>
+                <include>c++/src/CMakeFiles/</include>
+                <include>c++/src/Makefile</include>
+                <include>c++/src/cmake_install.cmake</include>
+                <include>c++/src/examples/</include>
               </includes>
             </fileset>
           </filesets>

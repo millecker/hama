@@ -35,8 +35,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.sync.SyncException;
-import org.apache.hama.pipes.protocol.UplinkReader;
-import org.apache.hama.pipes.protocol.StreamingProtocol.StreamingUplinkReaderThread;
 import org.apache.hama.util.KeyValuePair;
 
 /**
@@ -64,21 +62,22 @@ public class StreamingProtocol<K1 extends Writable, V1 extends Writable>
   }
 
   @Override
-  public UplinkReader<K1, V1, Text, Text> getUplinkReader(
+  public UplinkReader<K1, V1, Text, Text, BytesWritable> getUplinkReader(
       BSPPeer<K1, V1, Text, Text, BytesWritable> peer, InputStream in)
       throws IOException {
-    return new StreamingUplinkReaderThread(peer, in);
+    return new StreamingUplinkReaderThread(this, peer, in);
   }
-  
+
   public class StreamingUplinkReaderThread extends
       UplinkReader<K1, V1, Text, Text, BytesWritable> {
 
     private BufferedReader reader;
 
     public StreamingUplinkReaderThread(
+        BinaryProtocol<K1, V1, Text, Text, BytesWritable> binaryProtocol,
         BSPPeer<K1, V1, Text, Text, BytesWritable> peer, InputStream stream)
         throws IOException {
-      super(null, peer, stream);
+      super(binaryProtocol, peer, stream);
       reader = new BufferedReader(new InputStreamReader(inStream));
     }
 

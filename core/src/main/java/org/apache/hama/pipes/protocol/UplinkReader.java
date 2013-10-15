@@ -54,7 +54,6 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
   protected DataInputStream inStream;
   private KEYOUT key;
   private VALUEOUT value;
-  private Class<M> messageClass;
 
   private BinaryProtocol<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> binProtocol;
   private BSPPeer<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> peer = null;
@@ -294,10 +293,16 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
   public void sendMessage() throws IOException, InstantiationException,
       IllegalAccessException {
     String peerName = Text.readString(inStream);
+    /*
+    Class<M> messageClass;
+    LOG.debug("Got MessageType.SEND_MSG read message type: " + messageClass.toString());
     M msg = messageClass.newInstance();
+    */
+    BytesWritable msg = new BytesWritable();
+    
     readObject(msg);
     LOG.debug("Got MessageType.SEND_MSG to peerName: " + peerName);
-    peer.send(peerName, msg);
+    peer.send(peerName, (M)msg);
   }
 
   public void incrementCounter() throws IOException {
@@ -321,10 +326,10 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
 
       WritableUtils.writeVInt(stream, MessageType.READ_KEYVALUE.code);
       if (pair != null) {
-        binProtocol.writeObject((Writable) pair.getKey());
-        binProtocol.writeObject((Writable) pair.getValue());
-
+        binProtocol.writeObject(new Text(pair.getKey().toString()));
         String valueStr = pair.getValue().toString();
+        binProtocol.writeObject(new Text(valueStr));
+
         LOG.debug("Responded MessageType.READ_KEYVALUE - Key: "
             + pair.getKey()
             + " Value: "

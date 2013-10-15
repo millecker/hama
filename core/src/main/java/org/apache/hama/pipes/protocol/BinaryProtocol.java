@@ -39,7 +39,6 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.pipes.Submitter;
-import org.apache.hama.pipes.protocol.UplinkReader;
 
 /**
  * This protocol is a binary implementation of the Hama Pipes protocol.
@@ -124,9 +123,9 @@ public class BinaryProtocol<K1, V1, K2, V2, M extends Writable> implements
     uplink.start();
   }
 
-  public UplinkReader<K1, V1, K2, V2> getUplinkReader(
-      BSPPeer<K1, V1, K2, V2, BytesWritable> peer, InputStream in) throws IOException {
-    return new UplinkReader<K1, V1, K2, V2>(this, peer, in);
+  public UplinkReader<K1, V1, K2, V2, M> getUplinkReader(
+      BSPPeer<K1, V1, K2, V2, M> peer, InputStream in) throws IOException {
+    return new UplinkReader<K1, V1, K2, V2, M>(this, peer, in);
   }
 
   public boolean isHasTask() {
