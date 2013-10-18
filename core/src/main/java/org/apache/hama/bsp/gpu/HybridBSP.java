@@ -20,9 +20,6 @@ package org.apache.hama.bsp.gpu;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hama.bsp.BSP;
 import org.apache.hama.bsp.BSPPeer;
@@ -40,8 +37,7 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
     BSP<K1, V1, K2, V2, M> implements BSPGpuInterface<K1, V1, K2, V2, M>,
     PipesApplicable {
 
-  private static final Log LOG = LogFactory.getLog(HybridBSP.class);
-  protected PipesApplication<K1, V1, K2, V2, M> application;
+  protected PipesApplication<K1, V1, K2, V2, M> pipesApplication;
 
   /**
    * {@inheritDoc}
@@ -68,20 +64,19 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
 
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void setApplication(
       PipesApplication<?, ?, ?, ?, ? extends Writable> pipesApplication) {
-    this.application = (PipesApplication<K1, V1, K2, V2, M>) pipesApplication;
+    this.pipesApplication = (PipesApplication<K1, V1, K2, V2, M>) pipesApplication;
   }
 
   public Rootbeer start(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
       InterruptedException {
 
-    Map<String, String> env = application.setupEnvironment(peer
+    Map<String, String> env = pipesApplication.setupEnvironment(peer
         .getConfiguration());
 
-    application.startServer(peer);
+    pipesApplication.startServer(peer);
 
     return new Rootbeer(env);
   }

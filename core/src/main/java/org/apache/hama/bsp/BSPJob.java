@@ -260,9 +260,9 @@ public class BSPJob extends BSPJobContext {
   }
 
   public final <K1, V1, K2, V2, M extends Writable> PipesApplication<?, ?, ?, ?, ?> getPipesApplication() {
-    if (pipesApp == null)
+    if (pipesApp == null) {
       pipesApp = new PipesApplication<K1, V1, K2, V2, M>();
-
+    }
     return pipesApp;
   }
 

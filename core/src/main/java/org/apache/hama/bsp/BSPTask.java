@@ -172,20 +172,41 @@ public final class BSPTask extends Task {
     boolean useHybridGpuJob = false;
     /* Setup PipesApplication if workClass is matching */
     if (PipesBSP.class.equals(workClass)) {
+
+      LOG.debug("PipesBSP is available");
+
+      // TODO
+      // KEYIN, VALUEIN, KEYOUT, VALUEOUT will be NULL, generics are not defined
+      // in BSP
+
+      // Class<? extends Writable> keyInClass = (Class<? extends Writable>) job
+      // .getConfiguration().getClass("bsp.input.key.class", Object.class);
+      // Class<? extends Writable> valueInClass = (Class<? extends Writable>)
+      // job
+      // .getConfiguration().getClass("bsp.input.value.class", Object.class);
+      // Class<? extends Writable> keyOutClass = (Class<? extends Writable>) job
+      // .getConfiguration().getClass("bsp.output.key.class", Object.class);
+      // Class<? extends Writable> valueOutClass = (Class<? extends Writable>)
+      // job
+      // .getConfiguration().getClass("bsp.output.value.class", Object.class);
+      // Class<? extends Writable> messageClass = (Class<? extends Writable>)
+      // job
+      // .getConfiguration().getClass("bsp.message.class", Object.class);
+
       ((PipesApplicable) bsp)
           .setApplication(job
               .<KEYIN, VALUEIN, KEYOUT, VALUEOUT, BytesWritable> getPipesApplication());
 
       /* Setup HybridApplication (CPU+GPU) if workClass is matching */
-    } else if (HybridBSP.class.equals((workClass.getSuperclass()))) {
-      LOG.debug("HybridBSP is available...");
+    } else if ((useGPU)
+        && (HybridBSP.class.equals((workClass.getSuperclass())))) {
 
-      if (useGPU) {
-        useHybridGpuJob = true;
+      LOG.debug("HybridBSP is available and useGPU is true");
 
-        ((PipesApplicable) bsp).setApplication(job
-            .<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> getPipesApplication());
-      }
+      useHybridGpuJob = true;
+
+      ((PipesApplicable) bsp).setApplication(job
+          .<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> getPipesApplication());
     }
 
     // The policy is to throw the first exception and log the remaining.
@@ -201,7 +222,6 @@ public final class BSPTask extends Task {
         rootbeer = hybridBSP.start(bspPeer);
 
         hybridBSP.setupGpu(bspPeer, rootbeer);
-
         hybridBSP.bspGpu(bspPeer, rootbeer);
 
       } else {

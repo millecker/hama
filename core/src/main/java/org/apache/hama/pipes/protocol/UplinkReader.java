@@ -52,8 +52,9 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
   private static final Log LOG = LogFactory.getLog(UplinkReader.class);
 
   protected DataInputStream inStream;
-  private KEYOUT key;
-  private VALUEOUT value;
+  private KEYOUT keyOut;
+  private VALUEOUT valueOut;
+  private M message;
 
   private BinaryProtocol<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> binProtocol;
   private BSPPeer<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> peer = null;
@@ -73,13 +74,17 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
     this.inStream = new DataInputStream(new BufferedInputStream(stream,
         BinaryProtocol.BUFFER_SIZE));
 
-    this.key = (KEYOUT) ReflectionUtils.newInstance(
+    this.keyOut = (KEYOUT) ReflectionUtils.newInstance(
         (Class<? extends KEYOUT>) conf.getClass("bsp.output.key.class",
             Object.class), conf);
 
-    this.value = (VALUEOUT) ReflectionUtils.newInstance(
+    this.valueOut = (VALUEOUT) ReflectionUtils.newInstance(
         (Class<? extends VALUEOUT>) conf.getClass("bsp.output.value.class",
             Object.class), conf);
+
+    this.message = (M) ReflectionUtils.newInstance(
+        (Class<? extends M>) conf.getClass("bsp.message.class", Object.class),
+        conf);
 
     this.sequenceFileReaders = new HashMap<Integer, Entry<SequenceFile.Reader, Entry<String, String>>>();
     this.sequenceFileWriters = new HashMap<Integer, Entry<SequenceFile.Writer, Entry<String, String>>>();
@@ -204,7 +209,6 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
     WritableUtils.writeVInt(stream, MessageType.GET_SUPERSTEP_COUNT.code);
     WritableUtils.writeVLong(stream, peer.getSuperstepCount());
     binProtocol.flush();
-
     LOG.debug("Responded MessageType.GET_SUPERSTEP_COUNT - SuperstepCount: "
         + peer.getSuperstepCount());
   }
@@ -256,9 +260,9 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
     LOG.debug("Got MessageType.GET_ALL_PEERNAME");
     WritableUtils.writeVInt(stream, MessageType.GET_ALL_PEERNAME.code);
     WritableUtils.writeVInt(stream, peer.getAllPeerNames().length);
-    for (String s : peer.getAllPeerNames())
+    for (String s : peer.getAllPeerNames()) {
       Text.writeString(stream, s);
-
+    }
     binProtocol.flush();
     LOG.debug("Responded MessageType.GET_ALL_PEERNAME - peerNamesCount: "
         + peer.getAllPeerNames().length);
@@ -274,11 +278,11 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
     LOG.debug("Got MessageType.GET_MSG");
     WritableUtils.writeVInt(stream, MessageType.GET_MSG.code);
     Writable msg = peer.getCurrentMessage();
-    if (msg != null)
+    if (msg != null) {
       binProtocol.writeObject(msg);
-
+    }
     binProtocol.flush();
-    LOG.debug("Responded MessageType.GET_MSG - Message(BytesWritable) ");// +msg);
+    LOG.debug("Responded MessageType.GET_MSG - Message:" + msg.toString());
   }
 
   public void getMessageCount() throws IOException {
@@ -290,31 +294,26 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
         + peer.getNumCurrentMessages());
   }
 
-  public void sendMessage() throws IOException, InstantiationException,
-      IllegalAccessException {
-    String peerName = Text.readString(inStream);
-    /*
-    Class<M> messageClass;
-    LOG.debug("Got MessageType.SEND_MSG read message type: " + messageClass.toString());
-    M msg = messageClass.newInstance();
-    */
-    BytesWritable msg = new BytesWritable();
-    
-    readObject(msg);
-    LOG.debug("Got MessageType.SEND_MSG to peerName: " + peerName);
-    peer.send(peerName, (M)msg);
-  }
-
   public void incrementCounter() throws IOException {
-    // int id = WritableUtils.readVInt(inStream);
     String group = Text.readString(inStream);
     String name = Text.readString(inStream);
     long amount = WritableUtils.readVLong(inStream);
-    peer.incrementCounter(name, group, amount);
+    peer.incrementCounter(group, name, amount);
+  }
+
+  public void sendMessage() throws IOException, InstantiationException,
+      IllegalAccessException {
+    String peerName = Text.readString(inStream);
+    // BytesWritable message = new BytesWritable();
+    readObject(message);
+    LOG.debug("Got MessageType.SEND_MSG to peerName: " + peerName
+        + " messageType: " + message.getClass());
+    peer.send(peerName, message);
   }
 
   public void readKeyValue() throws IOException {
     DataOutputStream stream = binProtocol.getStream();
+
     boolean nullinput = peer.getConfiguration().get(
         Constants.INPUT_FORMAT_CLASS) == null
         || peer.getConfiguration().get(Constants.INPUT_FORMAT_CLASS)
@@ -326,10 +325,10 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
 
       WritableUtils.writeVInt(stream, MessageType.READ_KEYVALUE.code);
       if (pair != null) {
-        binProtocol.writeObject(new Text(pair.getKey().toString()));
-        String valueStr = pair.getValue().toString();
-        binProtocol.writeObject(new Text(valueStr));
+        binProtocol.writeObject((Writable) pair.getKey());
+        binProtocol.writeObject((Writable) pair.getValue());
 
+        String valueStr = pair.getValue().toString();
         LOG.debug("Responded MessageType.READ_KEYVALUE - Key: "
             + pair.getKey()
             + " Value: "
@@ -355,12 +354,13 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
   }
 
   public void writeKeyValue() throws IOException {
-    readObject((Writable) key); // string or binary only
-    readObject((Writable) value); // string or binary only
-    if (LOG.isDebugEnabled())
-      LOG.debug("Got MessageType.WRITE_KEYVALUE - Key: " + key + " Value: "
-          + value);
-    peer.write(key, value);
+    readObject((Writable) keyOut);
+    readObject((Writable) valueOut);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Got MessageType.WRITE_KEYVALUE - Key: " + keyOut + " Value: "
+          + valueOut);
+    }
+    peer.write(keyOut, valueOut);
   }
 
   public void seqFileOpen() throws IOException {
@@ -425,13 +425,14 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
         sequenceFileReaders.get(fileID).getValue().getValue());
     Writable value = (Writable) ReflectionUtils.newInstance(valueType, conf);
 
-    if (sequenceFileReaders.containsKey(fileID))
+    if (sequenceFileReaders.containsKey(fileID)) {
       sequenceFileReaders.get(fileID).getKey().next(key, value);
+    }
 
     // RESPOND
     DataOutputStream stream = binProtocol.getStream();
     WritableUtils.writeVInt(stream, MessageType.SEQFILE_READNEXT.code);
-    try {
+    if ((key != null) && (value != null)) {
       String k = key.toString();
       String v = value.toString();
       Text.writeString(stream, k);
@@ -439,8 +440,7 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
       LOG.debug("Responded MessageType.SEQFILE_READNEXT - key: " + k
           + " value: " + ((v.length() < 10) ? v : v.substring(0, 9) + "..."));
 
-    } catch (NullPointerException e) { // key or value is null
-
+    } else { // key or value is null
       Text.writeString(stream, "");
       Text.writeString(stream, "");
       LOG.debug("Responded MessageType.SEQFILE_READNEXT - EMPTY KeyValue Pair");
@@ -509,19 +509,32 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
       buffer = new byte[numBytes];
       inStream.readFully(buffer);
       ((BytesWritable) obj).set(buffer, 0, numBytes);
+
     } else if (obj instanceof Text) {
       buffer = new byte[numBytes];
       inStream.readFully(buffer);
       ((Text) obj).set(buffer);
+
     } else if (obj instanceof NullWritable) {
       throw new IOException(
           "Cannot read data into NullWritable! Check OutputClasses!");
+
     } else {
-      /* TODO */
-      /* IntWritable, DoubleWritable */
-      throw new IOException(
-          "Hama Pipes does only support Text as Key/Value output!");
-      // obj.readFields(inStream);
+      /*
+       * Valid types are IntWritable, LongWritable, FloatWritable
+       */
+      /*
+       * TODO DoubleWritable
+       */
+
+      try {
+        // try reading object
+        obj.readFields(inStream);
+      } catch (IOException e) {
+
+        throw new IOException("Hama Pipes is not able to read "
+            + obj.getClass().toString(), e);
+      }
     }
   }
 }
