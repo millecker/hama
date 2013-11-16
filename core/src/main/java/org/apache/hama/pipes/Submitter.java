@@ -244,14 +244,10 @@ public class Submitter implements Tool {
     LOG.debug("InputFormat: " + job.getInputFormat());
     LOG.debug("InputKeyClass: " + job.getInputKeyClass().getName());
     LOG.debug("InputValueClass: " + job.getInputValueClass().getName());
+    LOG.debug("InputFormat: " + job.getOutputFormat());
     LOG.debug("OutputKeyClass: " + job.getOutputKeyClass().getName());
     LOG.debug("OutputValueClass: " + job.getOutputValueClass().getName());
-
-    // TODO
-    // if ((!job.getOutputKeyClass().getName().equals(textClassname))
-    // || (!job.getOutputValueClass().getName().equals(textClassname)))
-    // throw new IllegalArgumentException(
-    // "Hama Pipes does only support Text as Key/Value output!");
+    LOG.debug("MessageClass: " + job.get("bsp.message.class"));
 
     LOG.debug("bsp.master.address: "
         + job.getConfiguration().get("bsp.master.address"));

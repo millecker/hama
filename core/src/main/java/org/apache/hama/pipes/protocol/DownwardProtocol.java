@@ -81,7 +81,7 @@ public interface DownwardProtocol<K1, V1, K2, V2> {
    * 
    * @throws IOException
    */
-  int getPartition(String key, String value, int numTasks) throws IOException;
+  int getPartition(K1 key, V1 value, int numTasks) throws IOException;
 
   /**
    * The task should stop as soon as possible, because something has gone wrong.

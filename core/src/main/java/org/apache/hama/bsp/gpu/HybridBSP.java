@@ -20,11 +20,12 @@ package org.apache.hama.bsp.gpu;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Writable;
 import org.apache.hama.bsp.BSP;
 import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.sync.SyncException;
-import org.apache.hama.pipes.PipesApplicable;
 import org.apache.hama.pipes.PipesApplication;
 
 import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
@@ -34,10 +35,19 @@ import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
  * {@link BSPGpuInterface}.
  */
 public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
-    BSP<K1, V1, K2, V2, M> implements BSPGpuInterface<K1, V1, K2, V2, M>,
-    PipesApplicable {
+    BSP<K1, V1, K2, V2, M> implements BSPGpuInterface<K1, V1, K2, V2, M> {
 
-  protected PipesApplication<K1, V1, K2, V2, M> pipesApplication;
+  private static final Log LOG = LogFactory.getLog(HybridBSP.class);
+  protected PipesApplication<K1, V1, K2, V2, M> pipesApplication = new PipesApplication<K1, V1, K2, V2, M>();
+
+  /**
+   * getMessageClass is used to set bsp.message.class property. The Hama Pipes
+   * protocol creates an Message object by reflection using this property.
+   * (sendMessage needs instance of Message Writable obj)
+   * 
+   * @return message class obj
+   */
+  public abstract Class<M> getMessageClass();
 
   /**
    * {@inheritDoc}
@@ -64,20 +74,23 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
 
   }
 
-  @Override
-  public void setApplication(
-      PipesApplication<?, ?, ?, ?, ? extends Writable> pipesApplication) {
-    this.pipesApplication = (PipesApplication<K1, V1, K2, V2, M>) pipesApplication;
-  }
-
   public Rootbeer start(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
       InterruptedException {
 
-    Map<String, String> env = pipesApplication.setupEnvironment(peer
+    Map<String, String> env = this.pipesApplication.setupEnvironment(peer
         .getConfiguration());
 
-    pipesApplication.startServer(peer);
+    this.pipesApplication.startServer(peer);
 
     return new Rootbeer(env);
   }
+
+  public void cleanup() {
+    try {
+      this.pipesApplication.cleanup();
+    } catch (IOException e) {
+      LOG.error(e);
+    }
+  }
+  
 }

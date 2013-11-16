@@ -34,8 +34,6 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hama.Constants;
 import org.apache.hama.bsp.gpu.HybridBSP;
 import org.apache.hama.ipc.BSPPeerProtocol;
-import org.apache.hama.pipes.PipesApplicable;
-import org.apache.hama.pipes.PipesBSP;
 
 import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
 
@@ -170,43 +168,14 @@ public final class BSPTask extends Task {
     LOG.debug("bsp.work.class: " + workClass.toString());
 
     boolean useHybridGpuJob = false;
-    /* Setup PipesApplication if workClass is matching */
-    if (PipesBSP.class.equals(workClass)) {
 
-      LOG.debug("PipesBSP is available");
-
-      // TODO
-      // KEYIN, VALUEIN, KEYOUT, VALUEOUT will be NULL, generics are not defined
-      // in BSP
-
-      // Class<? extends Writable> keyInClass = (Class<? extends Writable>) job
-      // .getConfiguration().getClass("bsp.input.key.class", Object.class);
-      // Class<? extends Writable> valueInClass = (Class<? extends Writable>)
-      // job
-      // .getConfiguration().getClass("bsp.input.value.class", Object.class);
-      // Class<? extends Writable> keyOutClass = (Class<? extends Writable>) job
-      // .getConfiguration().getClass("bsp.output.key.class", Object.class);
-      // Class<? extends Writable> valueOutClass = (Class<? extends Writable>)
-      // job
-      // .getConfiguration().getClass("bsp.output.value.class", Object.class);
-      // Class<? extends Writable> messageClass = (Class<? extends Writable>)
-      // job
-      // .getConfiguration().getClass("bsp.message.class", Object.class);
-
-      ((PipesApplicable) bsp)
-          .setApplication(job
-              .<KEYIN, VALUEIN, KEYOUT, VALUEOUT, BytesWritable> getPipesApplication());
-
-      /* Setup HybridApplication (CPU+GPU) if workClass is matching */
-    } else if ((useGPU)
-        && (HybridBSP.class.equals((workClass.getSuperclass())))) {
+    /* Setup HybridApplication (CPU+GPU) if workClass is matching */
+    if ((useGPU) && (HybridBSP.class.equals((workClass.getSuperclass())))) {
 
       LOG.debug("HybridBSP is available and useGPU is true");
 
       useHybridGpuJob = true;
 
-      ((PipesApplicable) bsp).setApplication(job
-          .<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> getPipesApplication());
     }
 
     // The policy is to throw the first exception and log the remaining.
@@ -217,6 +186,12 @@ public final class BSPTask extends Task {
       if (useHybridGpuJob) {
 
         HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> hybridBSP = (HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M>) bsp;
+
+        // Set message class
+        if (job.getConfiguration().get("bsp.message.class") == null) {
+          job.getConfiguration().set("bsp.message.class",
+              hybridBSP.getMessageClass().getName());
+        }
 
         // Start server and Rootbeer client
         rootbeer = hybridBSP.start(bspPeer);
@@ -238,6 +213,10 @@ public final class BSPTask extends Task {
         if ((useHybridGpuJob) && (rootbeer != null)) {
           ((HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M>) bsp).cleanupGpu(
               bspPeer, rootbeer);
+
+          // Cleanup Hama Pipes (send close)
+          ((HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M>) bsp).cleanup();
+
         } else {
           bsp.cleanup(bspPeer);
         }
