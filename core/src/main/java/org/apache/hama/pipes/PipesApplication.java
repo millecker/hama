@@ -332,11 +332,12 @@ public class PipesApplication<K1, V1, K2, V2, M extends Writable> {
       downlink = new BinaryProtocol<K1, V1, K2, V2, M>(peer,
           clientSocket.getOutputStream(), clientSocket.getInputStream());
 
-      downlink.start();
+      // downlink.start();
+      // isn't needed for rootbeer applications
 
     } catch (SocketException e) {
-      throw new SocketException(
-          "Timout: Client pipes application was not connecting!");
+      LOG.debug("Timout: Client pipes application didn't connect! Exception: "
+          + e.getMessage());
     }
   }
 
@@ -391,12 +392,12 @@ public class PipesApplication<K1, V1, K2, V2, M extends Writable> {
    * 
    * @throws IOException
    */
-  public void cleanup() throws IOException {
+  public void cleanup(boolean sendClose) throws IOException {
     if (serverSocket != null) {
       serverSocket.close();
     }
     try {
-      if (downlink != null) {
+      if ((downlink != null) && (sendClose)) {
         downlink.close();
       }
     } catch (InterruptedException ie) {

@@ -217,7 +217,6 @@ public class LocalBSPRunner implements JobSubmissionProtocol {
     private final BSP bsp;
     private final RawSplit[] splits;
     private BSPPeerImpl peer;
-    private Class<?> workClass;
 
     public BSPRunner(Configuration conf, BSPJob job, int id, RawSplit[] splits) {
       super();
@@ -230,11 +229,9 @@ public class LocalBSPRunner implements JobSubmissionProtocol {
       conf.setInt(Constants.PEER_PORT, id);
       conf.set(Constants.PEER_HOST, "local");
 
-      this.workClass = job.getConfiguration().getClass("bsp.work.class",
-          BSP.class);
-
-      bsp = (BSP) ReflectionUtils
-          .newInstance(workClass, job.getConfiguration());
+      bsp = (BSP) ReflectionUtils.newInstance(
+          job.getConfiguration().getClass("bsp.work.class", BSP.class),
+          job.getConfiguration());
 
     }
 
@@ -252,7 +249,6 @@ public class LocalBSPRunner implements JobSubmissionProtocol {
       peer = new BSPPeerImpl(job, conf, new TaskAttemptID(new TaskID(
           job.getJobID(), id), id), new LocalUmbilical(), id, splitname,
           realBytes, new Counters());
-
       // Throw the first exception and log all the other exception.
       Exception firstException = null;
       try {

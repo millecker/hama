@@ -34,10 +34,22 @@ import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
 public interface BSPGpuInterface<K1, V1, K2, V2, M extends Writable> {
 
   /**
+   * This method is called before the bspGpu method. It can be used for setup
+   * purposes.
+   * 
+   * @param peer Your BSPPeer instance.
+   * @throws IOException
+   */
+  public void setupGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
+      SyncException, InterruptedException;
+
+  /**
    * This method is your computation method, the main work of your BSP should be
    * done here.
    * 
    * @param peer Your BSPPeer instance.
+   * @param rootbeer Your Rootbeer instance for GPU executions.
+   * 
    * @throws java.io.IOException
    * @throws org.apache.hama.bsp.sync.SyncException
    * @throws InterruptedException
@@ -46,23 +58,12 @@ public interface BSPGpuInterface<K1, V1, K2, V2, M extends Writable> {
       throws IOException, SyncException, InterruptedException;
 
   /**
-   * This method is called before the BSP method. It can be used for setup
-   * purposes.
-   * 
-   * @param peer Your BSPPeer instance.
-   * @throws IOException
-   */
-  public void setupGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
-      throws IOException, SyncException, InterruptedException;
-
-  /**
-   * This method is called after the BSP method. It can be used for cleanup
-   * purposes. Cleanup is guranteed to be called after the BSP runs, even in
+   * This method is called after the bspGpu method. It can be used for cleanup
+   * purposes. Cleanup is guaranteed to be called after the BSP runs, even in
    * case of exceptions.
    * 
    * @param peer Your BSPPeer instance.
    * @throws IOException
    */
-  public void cleanupGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
-      throws IOException;
+  public void cleanupGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException;
 }

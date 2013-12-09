@@ -53,6 +53,15 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
    * {@inheritDoc}
    */
   @Override
+  public void setupGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
+      SyncException, InterruptedException {
+    // empty implementation
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public abstract void bspGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
       throws IOException, SyncException, InterruptedException;
 
@@ -60,37 +69,32 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
    * {@inheritDoc}
    */
   @Override
-  public void setupGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
-      throws IOException, SyncException, InterruptedException {
-
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void cleanupGpu(BSPPeer<K1, V1, K2, V2, M> peer, Rootbeer rootbeer)
-      throws IOException {
-
+  public void cleanupGpu(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException {
+    // empty implementation
   }
 
   public Rootbeer start(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
       InterruptedException {
 
+    LOG.debug("start...");
+
     Map<String, String> env = this.pipesApplication.setupEnvironment(peer
         .getConfiguration());
 
+    Rootbeer rootbeer = new Rootbeer(env);
+
     this.pipesApplication.startServer(peer);
 
-    return new Rootbeer(env);
+    LOG.debug("start finished!");
+    return rootbeer;
   }
 
   public void cleanup() {
     try {
-      this.pipesApplication.cleanup();
+      this.pipesApplication.cleanup(false);
     } catch (IOException e) {
       LOG.error(e);
     }
   }
-  
+
 }

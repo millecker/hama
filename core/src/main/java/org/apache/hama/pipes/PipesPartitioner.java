@@ -49,7 +49,7 @@ public class PipesPartitioner<K, V> implements Partitioner<K, V> {
 
   public void cleanup() {
     try {
-      application.cleanup();
+      application.cleanup(true);
     } catch (IOException e) {
       LOG.error(e);
     }
@@ -83,5 +83,5 @@ public class PipesPartitioner<K, V> implements Partitioner<K, V> {
     LOG.debug("getPartition returns: " + returnVal);
     return returnVal;
   }
-  
+
 }
