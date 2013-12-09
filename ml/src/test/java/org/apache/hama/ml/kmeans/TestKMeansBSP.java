@@ -63,7 +63,7 @@ public class TestKMeansBSP extends TestCase {
       bw.write(sb.toString());
       bw.close();
 
-      in = KMeansBSP.prepareInputText(k, conf, in, center, out, fs);
+      in = KMeansBSP.prepareInputText(k, conf, in, center, out, fs, false);
 
       BSPJob job = KMeansBSP.createJob(conf, in, out, true);
 
@@ -72,8 +72,8 @@ public class TestKMeansBSP extends TestCase {
 
       assertEquals(true, result);
 
-      HashMap<Integer, DoubleVector> centerMap = KMeansBSP.readOutput(conf,
-          out, centerOut, fs);
+      HashMap<Integer, DoubleVector> centerMap = KMeansBSP.readClusterCenters(
+          conf, out, centerOut, fs);
       System.out.println(centerMap);
       assertEquals(1, centerMap.size());
       DoubleVector doubleVector = centerMap.get(0);

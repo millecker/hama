@@ -28,6 +28,7 @@ import java.util.Random;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -43,6 +44,7 @@ import org.apache.hama.bsp.sync.SyncException;
 import org.apache.hama.commons.io.VectorWritable;
 import org.apache.hama.commons.math.DenseDoubleVector;
 import org.apache.hama.commons.math.DoubleVector;
+import org.apache.hama.commons.math.NamedDoubleVector;
 import org.apache.hama.ml.distance.DistanceMeasurer;
 import org.apache.hama.ml.distance.EuclidianDistance;
 import org.apache.hama.util.ReflectionUtils;
@@ -79,7 +81,6 @@ public final class KMeansBSP
   public final void setup(
       BSPPeer<VectorWritable, NullWritable, IntWritable, VectorWritable, CenterMessage> peer)
       throws IOException, InterruptedException {
-
     conf = peer.getConfiguration();
 
     Path centroids = new Path(peer.getConfiguration().get(CENTER_IN_PATH));
@@ -106,17 +107,16 @@ public final class KMeansBSP
         "Centers file must contain at least a single center!");
     this.centers = centers.toArray(new DoubleVector[centers.size()]);
 
-
     String distanceClass = peer.getConfiguration().get(DISTANCE_MEASURE_CLASS);
     if (distanceClass != null) {
       try {
         distanceMeasurer = ReflectionUtils.newInstance(distanceClass);
       } catch (ClassNotFoundException e) {
-        throw new RuntimeException(new StringBuilder("Wrong DistanceMeasurer implementation ").
-            append(distanceClass).append(" provided").toString());
+        throw new RuntimeException(new StringBuilder(
+            "Wrong DistanceMeasurer implementation ").append(distanceClass)
+            .append(" provided").toString());
       }
-    }
-    else {
+    } else {
       distanceMeasurer = new EuclidianDistance();
     }
 
@@ -177,7 +177,8 @@ public final class KMeansBSP
     for (int i = 0; i < msgCenters.length; i++) {
       final DoubleVector oldCenter = centers[i];
       if (msgCenters[i] != null) {
-        double calculateError = oldCenter.subtractUnsafe(msgCenters[i]).abs().sum();
+        double calculateError = oldCenter.subtractUnsafe(msgCenters[i]).abs()
+            .sum();
         if (calculateError > 0.0d) {
           centers[i] = msgCenters[i];
           convergedCounter++;
@@ -194,6 +195,7 @@ public final class KMeansBSP
     // needs to be broadcasted.
     final DoubleVector[] newCenterArray = new DoubleVector[centers.length];
     final int[] summationCount = new int[centers.length];
+
     // if our cache is not enabled, iterate over the disk items
     if (cache == null) {
       // we have an assignment step
@@ -221,6 +223,7 @@ public final class KMeansBSP
         }
       }
     }
+
     // now send messages about the local updates to each other peer
     for (int i = 0; i < newCenterArray.length; i++) {
       if (newCenterArray[i] != null) {
@@ -236,6 +239,7 @@ public final class KMeansBSP
       final int[] summationCount, final DoubleVector key) {
     final int lowestDistantCenter = getNearestCenter(key);
     final DoubleVector clusterCenter = newCenterArray[lowestDistantCenter];
+
     if (clusterCenter == null) {
       newCenterArray[lowestDistantCenter] = key;
     } else {
@@ -249,6 +253,7 @@ public final class KMeansBSP
   private int getNearestCenter(DoubleVector key) {
     int lowestDistantCenter = 0;
     double lowestDistance = Double.MAX_VALUE;
+
     for (int i = 0; i < centers.length; i++) {
       final double estimatedDistance = distanceMeasurer.measureDistance(
           centers[i], key);
@@ -366,12 +371,13 @@ public final class KMeansBSP
   }
 
   /**
-   * Reads the centers outputted from the clustering job.
+   * Reads the cluster centers.
    * 
    * @return an index on the key dimension, and a cluster center on the value.
    */
-  public static HashMap<Integer, DoubleVector> readOutput(Configuration conf,
-      Path out, Path centerPath, FileSystem fs) throws IOException {
+  public static HashMap<Integer, DoubleVector> readClusterCenters(
+      Configuration conf, Path out, Path centerPath, FileSystem fs)
+      throws IOException {
     HashMap<Integer, DoubleVector> centerMap = new HashMap<Integer, DoubleVector>();
     SequenceFile.Reader centerReader = new SequenceFile.Reader(fs, centerPath,
         conf);
@@ -385,10 +391,51 @@ public final class KMeansBSP
   }
 
   /**
+   * Reads output. The list of output records can be restricted to maxlines.
+   * 
+   * @param conf
+   * @param outPath
+   * @param fs
+   * @param maxlines
+   * @return the list of output records
+   * @throws IOException
+   */
+  public static List<String> readOutput(Configuration conf, Path outPath,
+      FileSystem fs, int maxlines) throws IOException {
+    List<String> output = new ArrayList<String>();
+
+    FileStatus[] globStatus = fs.globStatus(new Path(outPath + "/part-*"));
+    for (FileStatus fts : globStatus) {
+      BufferedReader reader = new BufferedReader(new InputStreamReader(
+          fs.open(fts.getPath())));
+      String line = null;
+      while ((line = reader.readLine()) != null) {
+        String[] split = line.split("\t");
+        output.add(split[1] + " belongs to cluster " + split[0]);
+
+        if (output.size() >= maxlines)
+          return output;
+      }
+    }
+
+    return output;
+  }
+
+  /**
    * Reads input text files and writes it to a sequencefile.
+   * 
+   * @param k
+   * @param conf
+   * @param txtIn
+   * @param center
+   * @param out
+   * @param fs
+   * @param hasKey true if first column is required to be the key.
+   * @return
+   * @throws IOException
    */
   public static Path prepareInputText(int k, Configuration conf, Path txtIn,
-      Path center, Path out, FileSystem fs) throws IOException {
+      Path center, Path out, FileSystem fs, boolean hasKey) throws IOException {
 
     Path in;
     if (fs.isFile(txtIn)) {
@@ -421,15 +468,30 @@ public final class KMeansBSP
     String line;
     while ((line = br.readLine()) != null) {
       String[] split = line.split("\t");
-      DenseDoubleVector vec = new DenseDoubleVector(split.length);
-      for (int j = 0; j < split.length; j++) {
-        vec.set(j, Double.parseDouble(split[j]));
+      int columnLength = split.length;
+      int indexPos = 0;
+      if (hasKey) {
+        columnLength = columnLength - 1;
+        indexPos++;
       }
-      VectorWritable vector = new VectorWritable(vec);
+
+      DenseDoubleVector vec = new DenseDoubleVector(columnLength);
+      for (int j = 0; j < columnLength; j++) {
+        vec.set(j, Double.parseDouble(split[j + indexPos]));
+      }
+
+      VectorWritable vector;
+      if (hasKey) {
+        NamedDoubleVector named = new NamedDoubleVector(split[0], vec);
+        vector = new VectorWritable(named);
+      } else {
+        vector = new VectorWritable(vec);
+      }
+
       dataWriter.append(vector, value);
       if (k > i) {
-          assert centerWriter != null;
-          centerWriter.append(vector, value);
+        assert centerWriter != null;
+        centerWriter.append(vector, value);
       } else {
         if (centerWriter != null) {
           centerWriter.close();
