@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.hama.pipes;
 
 import java.io.BufferedReader;
@@ -314,7 +313,6 @@ public class PipesApplication<K1, V1, K2, V2, M extends Writable> {
    * Start the server to handle possible clients.
    * 
    * @param peer
-   * @return Map<String, String> environment including server port
    * @throws IOException
    * @throws InterruptedException
    */
