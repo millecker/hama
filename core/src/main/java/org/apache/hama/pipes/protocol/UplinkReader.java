@@ -35,7 +35,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -261,14 +260,15 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
 
   public void getAllPeerNames() throws IOException {
     LOG.debug("Got MessageType.GET_ALL_PEERNAME");
+    String[] peerNames = peer.getAllPeerNames();
     WritableUtils.writeVInt(this.outStream, MessageType.GET_ALL_PEERNAME.code);
-    WritableUtils.writeVInt(this.outStream, peer.getAllPeerNames().length);
-    for (String s : peer.getAllPeerNames()) {
+    WritableUtils.writeVInt(this.outStream, peerNames.length);
+    for (String s : peerNames) {
       Text.writeString(this.outStream, s);
     }
     binProtocol.flush();
     LOG.debug("Responded MessageType.GET_ALL_PEERNAME - peerNamesCount: "
-        + peer.getAllPeerNames().length);
+        + peerNames.length);
   }
 
   public void sync() throws IOException, SyncException, InterruptedException {
@@ -408,7 +408,7 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
     WritableUtils.writeVInt(this.outStream, MessageType.WRITE_KEYVALUE.code);
     binProtocol.flush();
     LOG.debug("Responded MessageType.WRITE_KEYVALUE");
-    
+
     LOG.debug("Done MessageType.WRITE_KEYVALUE -"
         + " Key: "
         + ((keyOut.toString().length() < 10) ? keyOut.toString() : keyOut
@@ -662,9 +662,6 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
 
     } else if (obj instanceof LongWritable) {
       ((LongWritable) obj).set(WritableUtils.readVLong(this.inStream));
-
-    } else if (obj instanceof NullWritable) {
-      throw new IOException("Cannot read data into NullWritable!");
 
     } else {
       try {

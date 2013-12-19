@@ -516,7 +516,7 @@ public final class KMeansBSP
       fs.delete(out, true);
 
     if (fs.exists(center))
-      fs.delete(out, true);
+      fs.delete(center, true);
 
     if (fs.exists(in))
       fs.delete(in, true);

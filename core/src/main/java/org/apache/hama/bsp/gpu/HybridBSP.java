@@ -76,8 +76,6 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
   public Rootbeer start(BSPPeer<K1, V1, K2, V2, M> peer) throws IOException,
       InterruptedException {
 
-    LOG.debug("start...");
-
     Map<String, String> env = this.pipesApplication.setupEnvironment(peer
         .getConfiguration());
 
@@ -85,7 +83,6 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
 
     this.pipesApplication.startServer(peer);
 
-    LOG.debug("start finished!");
     return rootbeer;
   }
 

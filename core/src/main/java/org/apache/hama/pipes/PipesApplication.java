@@ -85,11 +85,9 @@ public class PipesApplication<K1, V1, K2, V2, M extends Writable> {
     // add TMPDIR environment variable with the value of java.io.tmpdir
     env.put("TMPDIR", System.getProperty("java.io.tmpdir"));
 
-    /* Set Logging Environment from Configuration */
+    // Set Logging Environment from Configuration
     env.put("hama.pipes.logging",
-        conf.getBoolean("hama.pipes.logging", false) ? "1" : "0");
-    LOG.debug("DEBUG hama.pipes.logging: "
-        + conf.getBoolean("hama.pipes.logging", false));
+        conf.getBoolean("hama.pipes.logging", false) ? "true" : "false");
 
     return env;
   }

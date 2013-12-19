@@ -67,10 +67,12 @@ public class Kmeans {
     Path out = new Path(args[1]);
     FileSystem fs = FileSystem.get(conf);
     Path center = null;
-    if (fs.isFile(in))
+    if (fs.isFile(in)) {
       center = new Path(in.getParent(), "center/cen.seq");
-    else
+    } else {
       center = new Path(in, "center/cen.seq");
+      in = new Path(in, "input.seq");
+    }
     Path centerOut = new Path(out, "center/center_output.seq");
     conf.set(KMeansBSP.CENTER_IN_PATH, center.toString());
     conf.set(KMeansBSP.CENTER_OUT_PATH, centerOut.toString());
