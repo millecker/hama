@@ -239,7 +239,11 @@ namespace HamaPipes {
      */
     //virtual Counter* getCounter(const string& group, const string& name) = 0;
     virtual long getCounter(const string& group, const string& name) = 0;
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 3fd43841819e9d57b1a3e7f641e9aa270783ba01
     /**
      * Increment the value of the counter with the given amount.
      */
