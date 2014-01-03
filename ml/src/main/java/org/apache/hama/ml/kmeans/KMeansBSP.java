@@ -244,8 +244,8 @@ public final class KMeansBSP
       // add the vector to the center
       newCenterArray[lowestDistantCenter] = newCenterArray[lowestDistantCenter]
           .addUnsafe(key);
-      summationCount[lowestDistantCenter]++;
     }
+    summationCount[lowestDistantCenter]++;
   }
 
   private int getNearestCenter(DoubleVector key) {

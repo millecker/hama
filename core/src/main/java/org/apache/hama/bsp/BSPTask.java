@@ -188,6 +188,8 @@ public final class BSPTask extends Task {
         if (job.getConfiguration().get("bsp.message.class") == null) {
           job.getConfiguration().set("bsp.message.class",
               hybridBSP.getMessageClass().getName());
+          LOG.debug("bsp.message.class: "
+              + job.getConfiguration().get("bsp.message.class"));
         }
 
         // Rootbeer rootbeer = hybridBSP.start(bspPeer);

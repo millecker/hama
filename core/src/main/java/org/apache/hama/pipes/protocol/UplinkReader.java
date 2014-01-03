@@ -283,15 +283,18 @@ public class UplinkReader<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M extends Writable>
 
   public void getMessage() throws IOException {
     LOG.debug("Got MessageType.GET_MSG");
-    WritableUtils.writeVInt(this.outStream, MessageType.GET_MSG.code);
     Writable message = peer.getCurrentMessage();
     if (message != null) {
+      WritableUtils.writeVInt(this.outStream, MessageType.GET_MSG.code);
       binProtocol.writeObject(message);
+      LOG.debug("Responded MessageType.GET_MSG - Message: "
+          + ((message.toString().length() < 10) ? message.toString() : message
+              .toString().substring(0, 9) + "..."));
+    } else {
+      WritableUtils.writeVInt(this.outStream, MessageType.END_OF_DATA.code);
+      LOG.debug("Responded MessageType.END_OF_DATA");
     }
     binProtocol.flush();
-    LOG.debug("Responded MessageType.GET_MSG - Message: "
-        + ((message.toString().length() < 10) ? message.toString() : message
-            .toString().substring(0, 9) + "..."));
   }
 
   public void getMessageCount() throws IOException {
