@@ -71,7 +71,6 @@ public class Kmeans {
       center = new Path(in.getParent(), "center/cen.seq");
     } else {
       center = new Path(in, "center/cen.seq");
-      in = new Path(in, "input.seq");
     }
     Path centerOut = new Path(out, "center/center_output.seq");
     conf.set(KMeansBSP.CENTER_IN_PATH, center.toString());
@@ -86,12 +85,18 @@ public class Kmeans {
       int dimension = Integer.parseInt(args[6]);
       System.out.println("N: " + count + " Dimension: " + dimension
           + " Iterations: " + iterations);
+      if (!fs.isFile(in)) {
+        in = new Path(in, "input.seq");
+      }
       // prepare the input, like deleting old versions and creating centers
       KMeansBSP.prepareInput(count, k, dimension, conf, in, center, out, fs);
     } else {
+      if (!fs.isFile(in)) {
+        System.out.println("Cannot read text input file: " + in.toString());
+        return;
+      }
       // Set the last argument to TRUE if first column is required to be the key
-      KMeansBSP.prepareInputText(k, conf, in, center, out, fs, true);
-      in = new Path(in.getParent(), "textinput/in.seq");
+      in = KMeansBSP.prepareInputText(k, conf, in, center, out, fs, true);
     }
 
     BSPJob job = KMeansBSP.createJob(conf, in, out, true);
