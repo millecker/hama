@@ -112,7 +112,8 @@ public final class KMeansBSP
       try {
         distanceMeasurer = ReflectionUtils.newInstance(distanceClass);
       } catch (ClassNotFoundException e) {
-        throw new RuntimeException("Wrong DistanceMeasurer implementation " + distanceClass + " provided");
+        throw new RuntimeException("Wrong DistanceMeasurer implementation "
+            + distanceClass + " provided");
       }
     } else {
       distanceMeasurer = new EuclidianDistance();
@@ -488,17 +489,12 @@ public final class KMeansBSP
 
       dataWriter.append(vector, value);
       if (k > i) {
-        assert centerWriter != null;
         centerWriter.append(vector, value);
-      } else {
-        if (centerWriter != null) {
-          centerWriter.close();
-          centerWriter = null;
-        }
       }
       i++;
     }
     br.close();
+    centerWriter.close();
     dataWriter.close();
     return in;
   }
@@ -538,10 +534,9 @@ public final class KMeansBSP
       dataWriter.append(vector, value);
       if (k > i) {
         centerWriter.append(vector, value);
-      } else if (k == i) {
-        centerWriter.close();
       }
     }
+    centerWriter.close();
     dataWriter.close();
   }
 }
