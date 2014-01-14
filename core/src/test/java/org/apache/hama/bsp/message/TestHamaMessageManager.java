@@ -34,13 +34,13 @@ import org.apache.hama.bsp.BSPPeerImpl;
 import org.apache.hama.bsp.Counters;
 import org.apache.hama.bsp.TaskAttemptID;
 import org.apache.hama.bsp.message.queue.DiskQueue;
-import org.apache.hama.bsp.message.queue.DiskTransferProtocolQueue;
-import org.apache.hama.bsp.message.queue.MemoryTransferProtocol;
+import org.apache.hama.bsp.message.queue.DiskQueueTransfer;
+import org.apache.hama.bsp.message.queue.MemoryQueueTransfer;
 import org.apache.hama.bsp.message.queue.MessageQueue;
-import org.apache.hama.bsp.message.queue.MessageTransferQueue;
+import org.apache.hama.bsp.message.queue.MessageTransferProtocol;
 import org.apache.hama.util.BSPNetUtils;
 
-public class TestHadoopMessageManager extends TestCase {
+public class TestHamaMessageManager extends TestCase {
 
   public static final String TMP_OUTPUT_PATH = "/tmp/messageQueue";
   // increment is here to solve race conditions in parallel execution to choose
@@ -50,7 +50,7 @@ public class TestHadoopMessageManager extends TestCase {
   public void testMemoryMessaging() throws Exception {
     HamaConfiguration conf = new HamaConfiguration();
     conf.setClass(MessageManager.TRANSFER_QUEUE_TYPE_CLASS,
-        MemoryTransferProtocol.class, MessageTransferQueue.class);
+        MemoryQueueTransfer.class, MessageTransferProtocol.class);
     conf.set(DiskQueue.DISK_QUEUE_PATH_KEY, TMP_OUTPUT_PATH);
     messagingInternal(conf);
   }
@@ -59,17 +59,17 @@ public class TestHadoopMessageManager extends TestCase {
     HamaConfiguration conf = new HamaConfiguration();
     conf.set(DiskQueue.DISK_QUEUE_PATH_KEY, TMP_OUTPUT_PATH);
     conf.setClass(MessageManager.TRANSFER_QUEUE_TYPE_CLASS,
-        DiskTransferProtocolQueue.class, MessageTransferQueue.class);
+        DiskQueueTransfer.class, MessageTransferProtocol.class);
     messagingInternal(conf);
   }
 
   private static void messagingInternal(HamaConfiguration conf) throws Exception {
     conf.set(MessageManagerFactory.MESSAGE_MANAGER_CLASS,
-        "org.apache.hama.bsp.message.HadoopMessageManagerImpl");
+        "org.apache.hama.bsp.message.HamaMessageManagerImpl");
     MessageManager<IntWritable> messageManager = MessageManagerFactory
         .getMessageManager(conf);
 
-    assertTrue(messageManager instanceof HadoopMessageManagerImpl);
+    assertTrue(messageManager instanceof HamaMessageManagerImpl);
 
     InetSocketAddress peer = new InetSocketAddress(
         BSPNetUtils.getCanonicalHostname(), BSPNetUtils.getFreePort()
