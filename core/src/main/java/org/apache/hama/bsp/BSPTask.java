@@ -184,14 +184,6 @@ public final class BSPTask extends Task {
 
         HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M> hybridBSP = (HybridBSP<KEYIN, VALUEIN, KEYOUT, VALUEOUT, M>) bsp;
 
-        // Set message class
-        if (job.getConfiguration().get("bsp.message.class") == null) {
-          job.getConfiguration().set("bsp.message.class",
-              hybridBSP.getMessageClass().getName());
-          LOG.debug("bsp.message.class: "
-              + job.getConfiguration().get("bsp.message.class"));
-        }
-
         // Rootbeer rootbeer = hybridBSP.start(bspPeer);
         LOG.debug("Run setupGpu...");
         hybridBSP.setupGpu(bspPeer);

@@ -41,15 +41,6 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
   protected PipesApplication<K1, V1, K2, V2, M> pipesApplication = new PipesApplication<K1, V1, K2, V2, M>();
 
   /**
-   * getMessageClass is used to set bsp.message.class property. The Hama Pipes
-   * protocol creates an Message object by reflection using this property.
-   * (sendMessage needs instance of Message Writable obj)
-   * 
-   * @return message class obj
-   */
-  public abstract Class<M> getMessageClass();
-
-  /**
    * {@inheritDoc}
    */
   @Override
