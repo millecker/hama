@@ -31,6 +31,7 @@ import org.apache.hama.bsp.HashPartitioner;
 import org.apache.hama.bsp.Partitioner;
 import org.apache.hama.bsp.PartitioningRunner.RecordConverter;
 import org.apache.hama.bsp.message.MessageManager;
+import org.apache.hama.bsp.message.OutgoingMessageManager;
 import org.apache.hama.bsp.message.queue.MessageQueue;
 import org.apache.hama.bsp.message.queue.SortedMemoryQueue;
 
@@ -45,7 +46,6 @@ public class GraphJob extends BSPJob {
 
   public final static String VERTEX_OUTPUT_WRITER_CLASS_ATTR = "hama.graph.vertex.output.writer.class";
   public final static String AGGREGATOR_CLASS_ATTR = "hama.graph.aggregator.class";
-  public final static String VERTEX_MESSAGE_COMBINER_CLASS_ATTR = "hama.vertex.message.combiner.class";
 
   /**
    * Creates a new Graph Job with the given configuration and an exampleClass.
@@ -57,6 +57,9 @@ public class GraphJob extends BSPJob {
   public GraphJob(HamaConfiguration conf, Class<?> exampleClass)
       throws IOException {
     super(conf);
+    conf.setClass(MessageManager.OUTGOING_MESSAGE_MANAGER_CLASS,
+        OutgoingVertexMessagesManager.class, OutgoingMessageManager.class);
+    
     this.setBoolean(Constants.PARTITION_SORT_BY_KEY, true);
     this.setBspClass(GraphJobRunner.class);
     this.setJarByClass(exampleClass);
@@ -103,20 +106,23 @@ public class GraphJob extends BSPJob {
   }
 
   /**
-   * Custom aggregator registration. Add a custom aggregator that will aggregate
-   * massages sent from the user.
-   * 
-   * @param name identifies an aggregator
-   * @param aggregatorClass the aggregator class
+   * Set the aggregator for the job.
+   */
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  public void setAggregatorClass(Class<? extends Aggregator> cls) {
+    this.setAggregatorClass(new Class[] { cls });
+  }
+
+  /**
+   * Sets multiple aggregators for the job.
    */
   @SuppressWarnings("rawtypes")
-  public void registerAggregator(String name,
-      Class<? extends Aggregator> aggregatorClass) {
-    String prevAggrs = this.conf.get(AGGREGATOR_CLASS_ATTR, "");
-
-    prevAggrs += name + "@" + aggregatorClass.getName() + ";";
-
-    this.conf.set(AGGREGATOR_CLASS_ATTR, prevAggrs);
+  public void setAggregatorClass(Class<? extends Aggregator>... cls) {
+    String classNames = "";
+    for (Class<? extends Aggregator> cl : cls) {
+      classNames += cl.getName() + ";";
+    }
+    conf.set(AGGREGATOR_CLASS_ATTR, classNames);
   }
 
   /**
@@ -157,7 +163,7 @@ public class GraphJob extends BSPJob {
   @Override
   public void setCombinerClass(Class<? extends Combiner<? extends Writable>> cls) {
     ensureState(JobState.DEFINE);
-    conf.setClass(VERTEX_MESSAGE_COMBINER_CLASS_ATTR, cls, Combiner.class);
+    conf.setClass(Constants.COMBINER_CLASS, cls, Combiner.class);
   }
 
   /**

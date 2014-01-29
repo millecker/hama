@@ -27,8 +27,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hama.HamaConfiguration;
@@ -58,6 +58,7 @@ public abstract class Vertex<V extends WritableComparable, E extends Writable, M
   private transient GraphJobRunner<V, E, M> runner;
 
   private V vertexID;
+  private M oldValue;
   private M value;
   private List<Edge<V, E>> edges;
 
@@ -183,6 +184,7 @@ public abstract class Vertex<V extends WritableComparable, E extends Writable, M
 
   @Override
   public void setValue(M value) {
+    this.oldValue = this.value;
     this.value = value;
   }
 
@@ -361,30 +363,6 @@ public abstract class Vertex<V extends WritableComparable, E extends Writable, M
 
   }
 
-  /**
-   * Provides a value to the specified aggregator.
-   * 
-   * @throws IOException
-   * 
-   * @param name identifies an aggregator
-   * @param value value to be aggregated
-   */
-  @Override
-  public void aggregate(String name, M value) throws IOException {
-    MapWritable msg = new MapWritable();
-    msg.put(new Text(GraphJobRunner.S_FLAG_AGGREGATOR_VALUE + ";" + name),
-        value);
-
-    // Get master task peer.
-    String destPeer = GraphJobRunner.getMasterTask(this.getPeer());
-    runner.getPeer().send(destPeer, new GraphJobMessage(msg));
-  }
-
-  @Override
-  public Writable getAggregatedValue(String name) {
-    return this.runner.getAggregationRunner().getAggregatedValue(name);
-  }
-
   protected void setRunner(GraphJobRunner<V, E, M> runner) {
     this.runner = runner;
   }
@@ -404,5 +382,36 @@ public abstract class Vertex<V extends WritableComparable, E extends Writable, M
     Vertex<V, E, M> vertex = GraphJobRunner.<V, E, M> newVertexInstance(GraphJobRunner.VERTEX_CLASS);
     vertex.readFields(dis);
     return vertex;
+  }
+  
+  @Override
+  public void aggregate(int index, M value) throws IOException {
+    this.runner.getAggregationRunner().aggregateVertex(index, oldValue, value);
+  }
+
+  /**
+   * Get the last aggregated value of the defined aggregator, null if nothing
+   * was configured or not returned a result. You have to supply an index, the
+   * index is defined by the order you set the aggregator classes in
+   * {@link GraphJob#setAggregatorClass(Class...)}. Index is starting at zero,
+   * so if you have a single aggregator you can retrieve it via
+   * {@link #getLastAggregatedValue}(0).
+   */
+  @SuppressWarnings("unchecked")
+  @Override
+  public M getAggregatedValue(int index) {
+    return (M) runner.getLastAggregatedValue(index);
+  }
+  
+  /**
+   * Get the number of aggregated vertices in the last superstep. Or null if no
+   * aggregator is available.You have to supply an index, the index is defined
+   * by the order you set the aggregator classes in
+   * {@link GraphJob#setAggregatorClass(Class...)}. Index is starting at zero,
+   * so if you have a single aggregator you can retrieve it via
+   * {@link #getNumLastAggregatedVertices}(0).
+   */
+  public IntWritable getNumLastAggregatedVertices(int index) {
+    return runner.getNumLastAggregatedVertices(index);
   }
 }

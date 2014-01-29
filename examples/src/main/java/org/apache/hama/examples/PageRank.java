@@ -19,7 +19,6 @@ package org.apache.hama.examples;
 
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -40,7 +39,6 @@ import org.apache.hama.graph.VertexInputReader;
  * Real pagerank with dangling node contribution.
  */
 public class PageRank {
-  private static final String AVG_AGGREGATOR = "average.aggregator";
 
   public static class PageRankVertex extends
       Vertex<Text, NullWritable, DoubleWritable> {
@@ -72,14 +70,15 @@ public class PageRank {
         }
         double alpha = (1.0d - DAMPING_FACTOR) / this.getNumVertices();
         setValue(new DoubleWritable(alpha + (sum * DAMPING_FACTOR)));
-        aggregate(AVG_AGGREGATOR, this.getValue());
+        aggregate(0, this.getValue());
       }
 
       // if we have not reached our global error yet, then proceed.
-      DoubleWritable globalError = (DoubleWritable) getAggregatedValue(AVG_AGGREGATOR);
-
+      DoubleWritable globalError = getAggregatedValue(0);
+      
       if (globalError != null && this.getSuperstepCount() > 2
           && MAXIMUM_CONVERGENCE_ERROR > globalError.get()) {
+        System.out.println(globalError);
         voteToHalt();
       } else {
         // in each superstep we are going to send a new rank to our neighbours
@@ -127,7 +126,7 @@ public class PageRank {
     }
 
     // error
-    pageJob.registerAggregator(AVG_AGGREGATOR, AverageAggregator.class);
+    pageJob.setAggregatorClass(AverageAggregator.class);
 
     // Vertex reader
     pageJob.setVertexInputReaderClass(PagerankSeqReader.class);
@@ -155,7 +154,7 @@ public class PageRank {
     if (args.length < 2)
       printUsage();
 
-    HamaConfiguration conf = new HamaConfiguration(new Configuration());
+    HamaConfiguration conf = new HamaConfiguration();
     GraphJob pageJob = createJob(args, conf);
 
     long startTime = System.currentTimeMillis();

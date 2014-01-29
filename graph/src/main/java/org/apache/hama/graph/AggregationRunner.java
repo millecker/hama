@@ -17,20 +17,20 @@
  */
 package org.apache.hama.graph;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hama.bsp.BSPPeer;
+import org.apache.hama.bsp.sync.SyncException;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Runner class to do the tasks that need to be done if aggregation was
@@ -39,31 +39,107 @@ import org.apache.hama.bsp.BSPPeer;
  */
 @SuppressWarnings("rawtypes")
 public final class AggregationRunner<V extends WritableComparable, E extends Writable, M extends Writable> {
-  private Map<String, Aggregator> Aggregators;
-  private Map<String, Writable> aggregatorResults;
-  private Set<String> aggregatorsUsed;
 
+  // multiple aggregator arrays
+  private Aggregator<M>[] aggregators;
+  private Writable[] globalAggregatorResult;
+  private IntWritable[] globalAggregatorIncrement;
+  private boolean[] isAbstractAggregator;
+  private String[] aggregatorClassNames;
+  private Text[] aggregatorValueFlag;
+  private Text[] aggregatorIncrementFlag;
+  // aggregator on the master side
+  private Aggregator<M>[] masterAggregator;
+
+  private boolean enabled = false;
   private Configuration conf;
-  private Text textWrap = new Text();
 
+  @SuppressWarnings("unchecked")
   public void setupAggregators(
       BSPPeer<Writable, Writable, Writable, Writable, GraphJobMessage> peer) {
     this.conf = peer.getConfiguration();
-
-    this.aggregatorResults = new HashMap<String, Writable>(4);
-    this.Aggregators = new HashMap<String, Aggregator>(4);
-    this.aggregatorsUsed = new HashSet<String>(4);
-
-    String customAggregatorClasses = peer.getConfiguration().get(
+    String aggregatorClasses = peer.getConfiguration().get(
         GraphJob.AGGREGATOR_CLASS_ATTR);
+    if (aggregatorClasses != null) {
+      enabled = true;
+      aggregatorClassNames = aggregatorClasses.split(";");
+      // init to the split size
+      aggregators = new Aggregator[aggregatorClassNames.length];
+      globalAggregatorResult = new Writable[aggregatorClassNames.length];
+      globalAggregatorIncrement = new IntWritable[aggregatorClassNames.length];
+      isAbstractAggregator = new boolean[aggregatorClassNames.length];
+      aggregatorValueFlag = new Text[aggregatorClassNames.length];
+      aggregatorIncrementFlag = new Text[aggregatorClassNames.length];
+      if (GraphJobRunner.isMasterTask(peer)) {
+        masterAggregator = new Aggregator[aggregatorClassNames.length];
+      }
+      for (int i = 0; i < aggregatorClassNames.length; i++) {
+        aggregators[i] = getNewAggregator(aggregatorClassNames[i]);
+        aggregatorValueFlag[i] = new Text(
+            GraphJobRunner.S_FLAG_AGGREGATOR_VALUE + ";" + i);
+        aggregatorIncrementFlag[i] = new Text(
+            GraphJobRunner.S_FLAG_AGGREGATOR_INCREMENT + ";" + i);
+        if (aggregators[i] instanceof AbstractAggregator) {
+          isAbstractAggregator[i] = true;
+        }
+        if (GraphJobRunner.isMasterTask(peer)) {
+          masterAggregator[i] = getNewAggregator(aggregatorClassNames[i]);
+        }
+      }
+    }
+  }
 
-    if (customAggregatorClasses != null) {
-      String[] custAggrs = customAggregatorClasses.split(";");
+  /**
+   * Runs the aggregators by sending their values to the master task.
+   * 
+   * @param changedVertexCnt
+   */
+  public void sendAggregatorValues(
+      BSPPeer<Writable, Writable, Writable, Writable, GraphJobMessage> peer,
+      int activeVertices, int changedVertexCnt) throws IOException {
+    // send msgCounts to the master task
+    MapWritable updatedCnt = new MapWritable();
+    updatedCnt.put(GraphJobRunner.FLAG_MESSAGE_COUNTS, new IntWritable(
+        activeVertices));
+    // send total number of vertices changes
+    updatedCnt.put(GraphJobRunner.FLAG_VERTEX_ALTER_COUNTER, new LongWritable(
+        changedVertexCnt));
+    // also send aggregated values to the master
+    if (aggregators != null) {
+      for (int i = 0; i < this.aggregators.length; i++) {
+        updatedCnt.put(aggregatorValueFlag[i], aggregators[i].getValue());
+        if (isAbstractAggregator[i]) {
+          updatedCnt.put(aggregatorIncrementFlag[i],
+              ((AbstractAggregator<M>) aggregators[i]).getTimesAggregated());
+        }
+      }
+      for (int i = 0; i < aggregators.length; i++) {
+        // now create new aggregators for the next iteration
+        aggregators[i] = getNewAggregator(aggregatorClassNames[i]);
+        if (GraphJobRunner.isMasterTask(peer)) {
+          masterAggregator[i] = getNewAggregator(aggregatorClassNames[i]);
+        }
+      }
+    }
+    peer.send(GraphJobRunner.getMasterTask(peer), new GraphJobMessage(
+        updatedCnt));
+  }
 
-      for (String aggr : custAggrs) {
-        String[] Name_AggrClass = aggr.split("@", 2);
-        this.Aggregators.put(Name_AggrClass[0],
-            getNewAggregator(Name_AggrClass[1]));
+  /**
+   * Aggregates the last value before computation and the value after the
+   * computation.
+   * 
+   * @param lastValue the value before compute().
+   * @param v the vertex.
+   */
+  public void aggregateVertex(int index, M lastValue, M value) {
+    if (isEnabled()) {
+      Aggregator<M> aggregator = this.aggregators[index];
+      aggregator.aggregate(value);
+      if (isAbstractAggregator[index]) {
+        AbstractAggregator<M> intern = (AbstractAggregator<M>) aggregator;
+        intern.aggregate(lastValue, value);
+        intern.aggregateInternal();
       }
     }
   }
@@ -73,20 +149,24 @@ public final class AggregationRunner<V extends WritableComparable, E extends Wri
    * peer and updates the given map accordingly.
    */
   public void doMasterAggregation(MapWritable updatedCnt) {
-    // Get results only from used aggregators.
-    for (String name : this.aggregatorsUsed) {
-      updatedCnt.put(new Text(name), this.Aggregators.get(name).getValue());
+    if (isEnabled()) {
+      // work through the master aggregators
+      for (int i = 0; i < masterAggregator.length; i++) {
+        Writable lastAggregatedValue = masterAggregator[i].getValue();
+        if (isAbstractAggregator[i]) {
+          final AbstractAggregator<M> intern = ((AbstractAggregator<M>) masterAggregator[i]);
+          final Writable finalizeAggregation = intern.finalizeAggregation();
+          if (intern.finalizeAggregation() != null) {
+            lastAggregatedValue = finalizeAggregation;
+          }
+          // this count is usually the times of active
+          // vertices in the graph
+          updatedCnt.put(aggregatorIncrementFlag[i],
+              intern.getTimesAggregated());
+        }
+        updatedCnt.put(aggregatorValueFlag[i], lastAggregatedValue);
+      }
     }
-    this.aggregatorsUsed.clear();
-
-    // Reset all custom aggregators. TODO: Change the aggregation interface to
-    // include clean() method.
-    Map<String, Aggregator> tmp = new HashMap<String, Aggregator>(4);
-    for (Entry<String, Aggregator> e : this.Aggregators.entrySet()) {
-      String aggClass = e.getValue().getClass().getName();
-      tmp.put(e.getKey(), getNewAggregator(aggClass));
-    }
-    this.Aggregators = tmp;
   }
 
   /**
@@ -96,20 +176,13 @@ public final class AggregationRunner<V extends WritableComparable, E extends Wri
    *         we haven't seen any messages anymore.
    */
   public boolean receiveAggregatedValues(MapWritable updatedValues,
-      long iteration) {
-    // In every superstep, we create a new result collection as we don't save
-    // history.
-    // If a value is missing, the user will take a null result. By creating a
-    // new collection
-    // every time, we can reduce the network cost (because we send less
-    // information by skipping null values)
-    // But we are losing in GC.
-    this.aggregatorResults = new HashMap<String, Writable>(4);
-    for (String name : this.Aggregators.keySet()) {
-      this.textWrap.set(name);
-      this.aggregatorResults.put(name, updatedValues.get(textWrap));
+      long iteration) throws IOException, SyncException, InterruptedException {
+    // map is the first value that is in the queue
+    for (int i = 0; i < aggregators.length; i++) {
+      globalAggregatorResult[i] = updatedValues.get(aggregatorValueFlag[i]);
+      globalAggregatorIncrement[i] = (IntWritable) updatedValues
+          .get(aggregatorIncrementFlag[i]);
     }
-
     IntWritable count = (IntWritable) updatedValues
         .get(GraphJobRunner.FLAG_MESSAGE_COUNTS);
     if (count != null && count.get() == Integer.MIN_VALUE) {
@@ -119,22 +192,37 @@ public final class AggregationRunner<V extends WritableComparable, E extends Wri
   }
 
   /**
-   * Method to let the custom master aggregator read messages from peers and
-   * aggregate a value.
+   * @return true if aggregators were defined. Normally used by the internal
+   *         stateful methods, outside shouldn't use it too extensively.
    */
-  @SuppressWarnings("unchecked")
-  public void masterAggregation(Text name, Writable value) {
-    String nameIdx = name.toString().split(";", 2)[1];
-    this.Aggregators.get(nameIdx).aggregate(null, value);
+  public boolean isEnabled() {
+    return enabled;
+  }
 
-    // When it's time to send the values, we can see which aggregators are used.
-    this.aggregatorsUsed.add(nameIdx);
+  /**
+   * Method to let the master read messages from peers and aggregate a value.
+   */
+  public void masterReadAggregatedValue(Text textIndex, M value) {
+    int index = Integer.parseInt(textIndex.toString().split(";")[1]);
+    masterAggregator[index].aggregate(value);
+  }
+
+  /**
+   * Method to let the master read messages from peers and aggregate the
+   * incremental value.
+   */
+  public void masterReadAggregatedIncrementalValue(Text textIndex, M value) {
+    int index = Integer.parseInt(textIndex.toString().split(";")[1]);
+    if (isAbstractAggregator[index]) {
+      ((AbstractAggregator<M>) masterAggregator[index])
+          .addTimesAggregated(((IntWritable) value).get());
+    }
   }
 
   @SuppressWarnings("unchecked")
-  private Aggregator<M, Vertex<V, E, M>> getNewAggregator(String clsName) {
+  private Aggregator<M> getNewAggregator(String clsName) {
     try {
-      return (Aggregator<M, Vertex<V, E, M>>) ReflectionUtils.newInstance(
+      return (Aggregator<M>) ReflectionUtils.newInstance(
           conf.getClassByName(clsName), conf);
     } catch (ClassNotFoundException e) {
       e.printStackTrace();
@@ -143,7 +231,13 @@ public final class AggregationRunner<V extends WritableComparable, E extends Wri
         + " could not be found or instantiated!");
   }
 
-  public final Writable getAggregatedValue(String name) {
-    return this.aggregatorResults.get(name);
+  public final Writable getLastAggregatedValue(int index) {
+    return globalAggregatorResult[Preconditions.checkPositionIndex(index,
+        globalAggregatorResult.length)];
+  }
+
+  public final IntWritable getNumLastAggregatedVertices(int index) {
+    return globalAggregatorIncrement[Preconditions.checkPositionIndex(index,
+        globalAggregatorIncrement.length)];
   }
 }
