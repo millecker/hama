@@ -318,18 +318,16 @@ public class PipesApplication<K1, V1, K2, V2, M extends Writable> {
       InterruptedException {
 
     try {
-      LOG.debug("DEBUG: waiting for Client at "
-          + serverSocket.getLocalSocketAddress());
+      LOG.debug("Waiting for Client at " + serverSocket.getLocalSocketAddress());
 
       serverSocket.setSoTimeout(SERVER_SOCKET_TIMEOUT);
-      clientSocket = serverSocket.accept();
-      LOG.debug("DEBUG: Client connected! - start BinaryProtocol!");
+      clientSocket = serverSocket.accept(); // blocks until a connection is made
+      LOG.debug("Client connected! - establish BinaryProtocol");
 
       downlink = new BinaryProtocol<K1, V1, K2, V2, M>(peer,
           clientSocket.getOutputStream(), clientSocket.getInputStream());
 
-      // downlink.start();
-      // is not needed for Rootbeer applications
+      // downlink.start(); // is not needed for Rootbeer applications
 
     } catch (SocketException e) {
       LOG.error("Timout: Client pipes application did not connect!", e);

@@ -27,8 +27,7 @@ import org.apache.hama.bsp.BSP;
 import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.sync.SyncException;
 import org.apache.hama.pipes.PipesApplication;
-
-import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
+import org.trifort.rootbeer.runtime.Rootbeer;
 
 /**
  * This class provides an abstract implementation of the {@link BSP} and
@@ -70,9 +69,9 @@ public abstract class HybridBSP<K1, V1, K2, V2, M extends Writable> extends
     Map<String, String> env = this.pipesApplication.setupEnvironment(peer
         .getConfiguration());
 
-    Rootbeer rootbeer = new Rootbeer(env);
+    Rootbeer rootbeer = new Rootbeer(env); // connect to ServerSocket
 
-    this.pipesApplication.startServer(peer);
+    this.pipesApplication.startServer(peer); // blocks until client is connected
 
     return rootbeer;
   }

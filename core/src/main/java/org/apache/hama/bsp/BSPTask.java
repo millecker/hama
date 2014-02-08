@@ -34,8 +34,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hama.Constants;
 import org.apache.hama.bsp.gpu.HybridBSP;
 import org.apache.hama.ipc.BSPPeerProtocol;
-
-import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
+import org.trifort.rootbeer.runtime.Rootbeer;
 
 /**
  * Base class for tasks.
