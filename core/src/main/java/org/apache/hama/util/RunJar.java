@@ -38,7 +38,8 @@ import java.util.jar.Manifest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileUtil;
-import org.trifort.rootbeer.entry.RootbeerCompiler;
+
+import edu.syr.pcpratts.rootbeer.entry.RootbeerCompiler;
 
 /**
  * Run a Hama job jar.
