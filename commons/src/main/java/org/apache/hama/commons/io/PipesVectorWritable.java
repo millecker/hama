@@ -29,20 +29,18 @@ import org.apache.hama.commons.math.DoubleVector;
  * VectorWritable for Hama Pipes dense vectors.
  */
 public final class PipesVectorWritable extends VectorWritable {
-
-  // private static final Log LOG =
-  // LogFactory.getLog(PipesVectorWritable.class);
+  public final static String VALUE_DELIMITER = ",";
 
   public PipesVectorWritable() {
     super();
   }
 
-  public PipesVectorWritable(VectorWritable v) {
-    super(v);
+  public PipesVectorWritable(VectorWritable vector) {
+    super(vector);
   }
 
-  public PipesVectorWritable(DoubleVector v) {
-    super(v);
+  public PipesVectorWritable(DoubleVector vector) {
+    super(vector);
   }
 
   @Override
@@ -59,19 +57,15 @@ public final class PipesVectorWritable extends VectorWritable {
       throws IOException {
     String str = "";
     for (int i = 0; i < vector.getLength(); i++) {
-      str += (i < vector.getLength() - 1) ? vector.get(i) + ", " : vector
-          .get(i);
+      str += (i < vector.getLength() - 1) ? vector.get(i) + VALUE_DELIMITER
+          : vector.get(i);
     }
-
-    // LOG.debug("writeVector: '" + str + "'");
     Text.writeString(out, str);
   }
 
   public static DoubleVector readVector(DataInput in) throws IOException {
     String str = Text.readString(in);
-    // LOG.debug("readVector: '" + str + "'");
-
-    String[] values = str.split(",");
+    String[] values = str.split(VALUE_DELIMITER);
     int len = values.length;
     DoubleVector vector = new DenseDoubleVector(len);
     for (int i = 0; i < len; i++) {
