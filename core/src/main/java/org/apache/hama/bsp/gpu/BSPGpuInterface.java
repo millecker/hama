@@ -22,8 +22,7 @@ import java.io.IOException;
 import org.apache.hadoop.io.Writable;
 import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.sync.SyncException;
-
-import edu.syr.pcpratts.rootbeer.runtime.Rootbeer;
+import org.trifort.rootbeer.runtime.Rootbeer;
 
 /**
  * The {@link BSPGpuInterface} defines the basic operations needed to implement
