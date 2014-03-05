@@ -158,7 +158,7 @@
     </description>
   </property>
   
-  <property>
+<property>
     <name>hama.default.messenger.handler.threads.num</name>
     <value>5</value>
     <description>The number of method handler threads to run.</description>
