@@ -632,7 +632,7 @@ public class BSPJobClient extends Configured implements Tool {
     int eventCounter = 0;
 
     while (!job.isComplete()) {
-      Thread.sleep(3000);
+      Thread.sleep(500); // increase precision of job execution time
       long step = job.progress();
       String report = "";
 
