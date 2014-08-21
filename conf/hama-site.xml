@@ -22,6 +22,7 @@
  */
 -->
 <configuration>
+<<<<<<< HEAD
     
     <property>
         <name>bsp.master.address</name>
@@ -52,4 +53,6 @@
         </description>
     </property>
     
+=======
+>>>>>>> 01f26352ef8f3f0fe3546906a58ef5dfeee777c7
 </configuration>

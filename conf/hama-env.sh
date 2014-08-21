@@ -27,7 +27,7 @@
 export JAVA_HOME=/usr/local/java/jdk
 
 # Where log files are stored.  $HAMA_HOME/logs by default.
-export HAMA_LOG_DIR=${HAMA_HOME}/logs
+# export HAMA_LOG_DIR=${HAMA_HOME}/logs
 
 # The maximum amount of heap to use, in MB. Default is 1000.
 # export HAMA_HEAPSIZE=1000
