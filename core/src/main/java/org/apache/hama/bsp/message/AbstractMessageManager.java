@@ -232,12 +232,7 @@ public abstract class AbstractMessageManager<M extends Writable> implements
   }
 
   protected SynchronizedQueue<M> getSynchronizedReceiverQueue() {
-    MessageQueue<M> queue = getReceiverQueue();
-    if (queue.isMemoryBasedQueue()) {
-      return (SynchronizedQueue<M>) queue;
-    }
-
-    return new SingleLockQueue<M>(queue);
+    return SingleLockQueue.synchronize(getReceiverQueue());
   }
 
   @Override
@@ -284,11 +279,15 @@ public abstract class AbstractMessageManager<M extends Writable> implements
 
   @Override
   public void loopBackBundle(BSPMessageBundle<M> bundle) throws IOException {
-    bundle.setCompressor(compressor,
-        conf.getLong("hama.messenger.compression.threshold", 128));
-    this.localQueueForNextIteration.add(bundle);
-    peer.incrementCounter(BSPPeerImpl.PeerCounter.TOTAL_MESSAGES_RECEIVED,
-        bundle.size());
+    if (conf.getBoolean("hama.messenger.runtime.compression", false)) {
+      bundle.setCompressor(compressor,
+          conf.getLong("hama.messenger.compression.threshold", 128));
+    }
+
+    Iterator<? extends Writable> it = bundle.iterator();
+    while (it.hasNext()) {
+      loopBackMessage(it.next());
+    }
   }
 
   @SuppressWarnings("unchecked")
